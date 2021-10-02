@@ -4,6 +4,7 @@ using Jypeli.Controls;
 using Jypeli.Widgets;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 public class autopeli : PhysicsGame
 {
@@ -12,7 +13,15 @@ public class autopeli : PhysicsGame
     Vector moveLeft = new Vector(-400, 0);
     Vector moveRight = new Vector(400, 0);
 
+    string playerName;
+
+    List<Label> mainMenuButtons;
+    List<Label> difficultyMenuButtons;
+    List<Label> endMenuButtons;
+
     PhysicsObject debris;
+    PhysicsObject fuel;
+    PhysicsObject carepackage;
     PhysicsObject player;
     PhysicsObject rightBorder;
     PhysicsObject leftBorder;
@@ -25,32 +34,146 @@ public class autopeli : PhysicsGame
 
     public override void Begin()
     {
-        OpenMainMenu();
-        ChooseDifficulty();
-        CreateStage();
+        SetPlayerName();
+        MainMenu();
         SetControls();
         AddMeters();
         AddTimers();
         StartGame();
     }
 
-    public void OpenMainMenu()
+    public void SetPlayerName()
     {
-        // TODO: Määritä päävalikko.
+        InputWindow nameQuery = new InputWindow("Player Name: ");
+        Add(nameQuery);
+
+        playerName = nameQuery.InputBox.Text;
     }
 
-    public void CreateStage()
+    public void MainMenu()
     {
-        player = new PhysicsObject(25.0, 25.0);
-        player.Shape = Shape.Rectangle;
-        player.Y = -150.0;
-        player.Restitution = 0.35;
-        Add(player);
+        /*MultiSelectWindow mainMenu = new MultiSelectWindow("Main Menu", "Play", "Hiscore", "Exit");
+        mainMenu.Color = Color.Gray;
+        mainMenu.AddItemHandler(0, SelectDifficulty);
+        mainMenu.AddItemHandler(1, OpenHiscore);
+        mainMenu.AddItemHandler(2, SelectDifficulty);
+        mainMenu.DefaultCancel = 2;*/
+
+        ClearAll();
+
+        mainMenuButtons = new List<Label>();
+
+        Label button1 = new Label("Play");
+        button1.Y = 50.0;
+        mainMenuButtons.Add(button1);
+
+        Label button2 = new Label("Hiscore");
+        button2.Y = 0;
+        mainMenuButtons.Add(button2);
+
+        Label button3 = new Label("Exit");
+        button3.Y = -50.0;
+        mainMenuButtons.Add(button3);
+
+        foreach (Label button in mainMenuButtons)
+        {
+            Add(button);
+        }
+
+        Mouse.ListenMovement(1.0, MenuMovement, null, mainMenuButtons);
+        Mouse.ListenOn(button1, MouseButton.Left, ButtonState.Pressed, DifficultySelection, null);
+        Mouse.ListenOn(button2, MouseButton.Left, ButtonState.Pressed, Hiscores, null);
+        Mouse.ListenOn(button3, MouseButton.Left, ButtonState.Pressed, ExitGame, null);
+    }
+
+    public void MenuMovement(List<Label> menuType)
+    {
+        foreach (Label button in menuType)
+        {
+            if (Mouse.IsCursorOn(button))
+            {
+                button.TextColor = Color.Red;
+            }
+            else
+            {
+                button.TextColor = Color.White;
+            }
+        }
+    }
+
+    public void DifficultySelection()
+    {
+        ClearAll();
+
+        difficultyMenuButtons = new List<Label>();
+
+        Label easy = new Label("Easy");
+        easy.Y = 50.0;
+        difficultyMenuButtons.Add(easy);
+
+        Label medium = new Label("Medium");
+        medium.Y = 0;
+        difficultyMenuButtons.Add(medium);
+
+        Label hard = new Label("Hard");
+        hard.Y = -50.0;
+        difficultyMenuButtons.Add(hard);
+
+        foreach (Label button in difficultyMenuButtons)
+        {
+            Add(button);
+        }
+
+        Mouse.ListenMovement(1.0, MenuMovement, null, difficultyMenuButtons);
+        Mouse.ListenOn(easy, MouseButton.Left, ButtonState.Pressed, CreateStage, null, "easy");
+        Mouse.ListenOn(medium, MouseButton.Left, ButtonState.Pressed, CreateStage, null, "medium");
+        Mouse.ListenOn(hard, MouseButton.Left, ButtonState.Pressed, CreateStage, null, "hard");
+    }
+
+    public void CreateStage(string difficulty)
+    {
+        ClearAll();
+        CreatePlayer();
+        CreateBorders();
+        CreateRoad();
 
         // TODO: korjaa?
         AddCollisionHandler(player, HandleCollisions);
 
-        // TODO: for loop
+        Level.BackgroundColor = Color.Gray;
+        Camera.ZoomToLevel();
+
+        if (difficulty == "easy")
+        {
+            CreateObjects(RandomGen.NextDouble(3, 6), RandomGen.NextDouble(3, 6), 50, 10, 3, -250.0);
+            StartGame();
+        }
+        else if (difficulty == "medium")
+        {
+            CreateObjects(RandomGen.NextDouble(4, 8), RandomGen.NextDouble(4, 8), 75, 8, 2, -300.0);
+            StartGame();
+        }
+        else if (difficulty == "hard")
+        {
+            CreateObjects(RandomGen.NextDouble(5, 10), RandomGen.NextDouble(5, 10), 100, 6, 1, -350.0);
+            StartGame();
+        }
+        MainMenu();
+    }
+
+    public void CreatePlayer()
+    {
+        player = new PhysicsObject(5.0, 10.0);
+        player.Shape = Shape.Rectangle;
+        // TODO: player.Image = ???.
+        player.Y = -150.0;
+        player.Restitution = 0.35;
+        Add(player);
+    }
+
+    public void CreateBorders()
+    {
+        // TODO: for loop?
         rightBorder = Level.CreateRightBorder();
         rightBorder.Restitution = 0.5;
         rightBorder.IsVisible = true;
@@ -66,9 +189,55 @@ public class autopeli : PhysicsGame
         bottomBorder = Level.CreateBottomBorder();
         bottomBorder.Restitution = 0;
         bottomBorder.IsVisible = false;
+    }
 
-        Level.BackgroundColor = Color.Black;
-        Camera.ZoomToLevel();
+    public void CreateRoad()
+    {
+        // TODO: Lisää tien ominaisuudet (keskiviivat??).
+        // TODO: Lisää maaliviiva.
+    }
+
+    public void CreateObjects(double debrisX, double debrisY, int debrisAmount, int fuelAmount, int carepackageAmount, double carSpeed)
+    {
+        Vector speed = new Vector(0.0, carSpeed);
+
+        debris = new PhysicsObject(debrisX, debrisY);
+        debris.Shape = Shape.Hexagon;
+        // TODO: debris.Image = ???.
+
+        fuel = new PhysicsObject(5.0, 5.0);
+        fuel.Shape = Shape.Circle;
+        // TODO: fuel.Image = ???.
+
+        carepackage = new PhysicsObject(5.0, 5.0);
+        carepackage.Shape = Shape.Circle;
+        // TODO: carepackage.Image = ???.
+
+        for (int i = 0; i < debrisAmount + 1; i++)
+        {
+            debris.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
+            debris.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
+            debris.Hit(speed * debris.Mass);
+        }
+
+        for (int i = 0; i < fuelAmount + 1; i++)
+        {
+            fuel.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
+            fuel.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
+            fuel.Hit(speed * fuel.Mass);
+        }
+
+        for (int i = 0; i < carepackageAmount + 1; i++)
+        { 
+            carepackage.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
+            carepackage.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
+            carepackage.Hit(speed * carepackage.Mass);
+        }
+    }
+
+    public void StartGame()
+    {
+
     }
 
     public void SetControls()
@@ -107,27 +276,27 @@ public class autopeli : PhysicsGame
         hullIntegrity.MinValue = 0;
 
         /*
-        if (hullIntegrity == 4)
+        if (hullIntegrity.Value == 4)
         {
             player.Image = ???;
         }
-        if (hullIntegrity == 3)
+        else if (hullIntegrity.Value == 3)
         {
             player.Image = ???;
         }
-        else if (hullIntegrity == 2)
+        else if (hullIntegrity.Value == 2)
         {
             player.Image = ???;
         }
-        else if (hullIntegrity == 1)
+        else if (hullIntegrity.Value == 1)
         {
             player.Image = ???;
         }
-        else
+        else if (hullIntegrity.Value == 0)
         {
-            // TODO: Räjäytä auto.
-            GameOver();
-        }*/
+            ExplodeCar();
+        }
+        MainMenu();*/
 
         distanceRemaining = new IntMeter(1000);
         distanceRemaining.MinValue = 0;
@@ -147,81 +316,105 @@ public class autopeli : PhysicsGame
 
     public void AddTimers()
     {
-        //TODO: Määritä ajastimet.
+
     }
 
     public void HandleCollisions(PhysicsObject player, PhysicsObject target)
     {
-        // TODO: Määritä törmäykset.
-    }
+        // TODO: Muita vaihtoehtoja kuin debris?
 
-    public void ChooseDifficulty()
-    {
-        // TODO: Määritä roju.
-        if (??? == ???)
+        if (target == debris)
         {
-            /*CreateDebris();
-            StartGame();*/
-
-            debris = new PhysicsObject(5.0, 5.0);
-            Vector lvl1 = new Vector(0.0, -250.0);
-
-            for (int i = 0; i < 50; i++)
-            {
-                debris.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
-                debris.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
-                debris.Hit(lvl1 * debris.Mass);
-            }
-        }
-        else if (??? == ???)
-        {
-            /*CreateDebris();
-            StartGame();*/
-
-            debris = new PhysicsObject(7.5, 7.5);
-            Vector lvl2 = new Vector(0.0, -300.0);
-
-            for (int i = 0; i < 75; i++)
-            {
-                debris.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
-                debris.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
-                debris.Hit(lvl2 * debris.Mass);
-            }
-        }
-        else
-        {
-            /*CreateDebris();
-            StartGame();*/
-
-            debris = new PhysicsObject(10.0, 10.0);
-            Vector lvl3 = new Vector(0.0, -350.0);
-
-            for (int i = 0; i < 100; i++)
-            {
-                debris.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
-                debris.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
-                debris.Hit(lvl3 * debris.Mass);
-            }
+            // TODO: Poista debris (räjäytä tjms.?).
+            // TODO: Laske pelaajan hullIntegrityä 1:llä ja muuta auton ulkonäköä.
         }
     }
 
-    public void CreateDebris()
+    public void ExplodeCar()
     {
-        // TODO: Siirrä roippeen luonti tänne.
+        // TODO: kentän pysähtyminen.
+        // TODO: räjähdys.
+        // TODO: player.Image = ???.
+
+        Task.Delay(2000);
+
+        GameOver("Game Over: Your car broke down!");
     }
 
-    public void StartGame()
-    {
-        // TODO: Siirrä roippeen liikkeellelaitto tänne.
-    }
-
-    public void EndGame()
+    public void GameWin()
     {
         // TODO: Määritä voitto.
     }
 
-    public void GameOver()
+    public void GameOver(string loseMessage)
     {
-        // TODO: Määritä häviö.
+        Label lossReason = new Label(loseMessage);
+        Add(lossReason);
+
+        Task.Delay(2000);
+
+        // TODO: Poista lossReason näytöltä.
+
+        /* TODO: 2-3 sekunnin alaspäin laskeva laskuri ja label.
+        IntMeter lossMeter = new IntMeter(3);
+        Timer lossTimer = new Timer();
+        lossTimer.Interval = 1;
+        lossTimer.Start();
+        Label lossTimerDisplay = new Label();
+        lossTimerDisplay.TextColor = Color.White;
+        lossTimerDisplay.BindTo(lossMeter);
+        Add(lossTimerDisplay);
+        */
+
+        Mouse.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
+        Keyboard.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
+    }
+
+    public void EndMenu()
+    {
+        endMenuButtons = new List<Label>();
+
+        Label retry = new Label("Retry");
+        retry.Y = 50.0;
+        endMenuButtons.Add(retry);
+
+        /* TODO:
+        if (??? == ???)
+        {
+            Label changeDifficulty = new Label("Change difficulty");
+            changeDifficulty.Y = 0;
+            endMenuButtons.Add(changeDifficulty);
+        }
+        else if (??? == ???)
+        {
+            Label hiscores = new Label("Hiscores");
+            hiscores.Y = 0;
+            endMenuButtons.Add(hiscores);
+        }
+        */
+
+        Label quit = new Label("Quit");
+        quit.Y = -50.0;
+        endMenuButtons.Add(quit);
+
+        foreach (Label button in endMenuButtons)
+        {
+            Add(button);
+        }
+
+        Mouse.ListenMovement(1.0, MenuMovement, null, endMenuButtons);
+        Mouse.ListenOn(retry, MouseButton.Left, ButtonState.Pressed, /* TODO: ???.*/, null, /* TODO: ???.*/);
+        Mouse.ListenOn(changeDifficulty, MouseButton.Left, ButtonState.Pressed, DifficultySelection, null);
+        Mouse.ListenOn(quit, MouseButton.Left, ButtonState.Pressed, MainMenu, null);
+    }
+
+    public void Hiscores()
+    {
+        // TODO: Määritä pistelista.
+    }
+
+    public void ExitGame()
+    {
+        // TODO: Määritä pelistä poistuminen.
     }
 }
