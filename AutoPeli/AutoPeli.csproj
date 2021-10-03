@@ -12,5 +12,10 @@
         <PackageReference Include="Jypeli.FarseerPhysics.NET" Version="1.0.*" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Cars\" />
+      <Folder Include="Objects\" />
+    </ItemGroup>
+
 </Project>
 

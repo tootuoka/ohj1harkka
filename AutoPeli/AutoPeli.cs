@@ -12,12 +12,15 @@ public class autopeli : PhysicsGame
     Vector moveDown = new Vector(-0, -400);
     Vector moveLeft = new Vector(-400, 0);
     Vector moveRight = new Vector(400, 0);
+    Vector speed;
 
     string playerName;
 
     List<Label> mainMenuButtons;
     List<Label> difficultyMenuButtons;
     List<Label> endMenuButtons;
+
+    List<PhysicsObject> objectGroup = new List<PhysicsObject>();
 
     PhysicsObject debris;
     PhysicsObject fuel;
@@ -28,12 +31,15 @@ public class autopeli : PhysicsGame
     PhysicsObject topBorder;
     PhysicsObject bottomBorder;
 
-    IntMeter hullIntegrity;
-    IntMeter distanceRemaining;
-    DoubleMeter fuelRemaining;
+    IntMeter hullIntegrity = new IntMeter(3, 0, 4);
+    DoubleMeter distanceRemaining = new DoubleMeter(1000.0, 0.0, 1100.0);
+    DoubleMeter fuelRemaining = new DoubleMeter(100.0, 0.0, 100.0);
+
+    ScoreList hiscores = new ScoreList(20, false, 0);
 
     public override void Begin()
     {
+        hiscores = DataStorage.TryLoad<ScoreList>(hiscores, "hiscores.xml");
         SetPlayerName();
         MainMenu();
         SetControls();
@@ -136,6 +142,7 @@ public class autopeli : PhysicsGame
         CreatePlayer();
         CreateBorders();
         CreateRoad();
+        AddMeters();
 
         // TODO: korjaa?
         AddCollisionHandler(player, HandleCollisions);
@@ -199,7 +206,7 @@ public class autopeli : PhysicsGame
 
     public void CreateObjects(double debrisX, double debrisY, int debrisAmount, int fuelAmount, int carepackageAmount, double carSpeed)
     {
-        Vector speed = new Vector(0.0, carSpeed);
+        speed = new Vector(0.0, carSpeed);
 
         debris = new PhysicsObject(debrisX, debrisY);
         debris.Shape = Shape.Hexagon;
@@ -207,16 +214,22 @@ public class autopeli : PhysicsGame
 
         fuel = new PhysicsObject(5.0, 5.0);
         fuel.Shape = Shape.Circle;
-        // TODO: fuel.Image = ???.
+        fuel.Image = LoadImage("fuel");
 
         carepackage = new PhysicsObject(5.0, 5.0);
         carepackage.Shape = Shape.Circle;
-        // TODO: carepackage.Image = ???.
+        carepackage.Image = LoadImage("carepackage");
 
         for (int i = 0; i < debrisAmount + 1; i++)
         {
+            //debris.Position = RandomGen.NextVector(Screen.Left + 5.0, Screen.Top + 20.0, Screen.Right - 5.0, Screen.Top + 980.0)
             debris.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
             debris.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
+            debris.Shape = RandomGen.NextShape();
+            debris.Angle = RandomGen.NextAngle();
+            debris.Color = Color.White;
+            objectGroup.Add(debris);
+            Add(debris);
             debris.Hit(speed * debris.Mass);
         }
 
@@ -224,6 +237,8 @@ public class autopeli : PhysicsGame
         {
             fuel.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
             fuel.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
+            objectGroup.Add(fuel);
+            Add(fuel);
             fuel.Hit(speed * fuel.Mass);
         }
 
@@ -231,13 +246,18 @@ public class autopeli : PhysicsGame
         { 
             carepackage.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
             carepackage.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
+            objectGroup.Add(carepackage);
+            Add(carepackage);
             carepackage.Hit(speed * carepackage.Mass);
         }
     }
 
     public void StartGame()
     {
-
+        foreach (PhysicsObject x in objectGroup)
+        {
+            x.Hit(speed * x.Mass);
+        }
     }
 
     public void SetControls()
@@ -270,48 +290,38 @@ public class autopeli : PhysicsGame
 
     public void AddMeters()
     {
-        // TODO: Määritä laskurit.
-        hullIntegrity = new IntMeter(3);
-        hullIntegrity.MaxValue = 4;
-        hullIntegrity.MinValue = 0;
-
-        /*
-        if (hullIntegrity.Value == 4)
-        {
-            player.Image = ???;
-        }
-        else if (hullIntegrity.Value == 3)
-        {
-            player.Image = ???;
-        }
-        else if (hullIntegrity.Value == 2)
-        {
-            player.Image = ???;
-        }
-        else if (hullIntegrity.Value == 1)
-        {
-            player.Image = ???;
-        }
-        else if (hullIntegrity.Value == 0)
-        {
-            ExplodeCar();
-        }
-        MainMenu();*/
-
-        distanceRemaining = new IntMeter(1000);
-        distanceRemaining.MinValue = 0;
         Label distanceMeter = new Label();
         distanceMeter.BindTo(distanceRemaining);
         distanceMeter.X = Screen.Left + 50.0;
         distanceMeter.Y = Screen.Top - 50.0;
 
-        fuelRemaining = new DoubleMeter(100.0);
-        fuelRemaining.MaxValue = 100.0;
-        fuelRemaining.MinValue = 0.0;
         Label fuelMeter = new Label();
         fuelMeter.BindTo(fuelRemaining);
         fuelMeter.X = Screen.Right - 50.0;
         fuelMeter.Y = Screen.Top - 50.0;
+
+        if (hullIntegrity.Value == 4)
+        {
+            player.Image = LoadImage("carYellow4");
+        }
+        else if (hullIntegrity.Value == 3)
+        {
+            player.Image = LoadImage("carYellow3");
+        }
+        else if (hullIntegrity.Value == 2)
+        {
+            player.Image = LoadImage("carYellow2");
+        }
+        else if (hullIntegrity.Value == 1)
+        {
+            player.Image = LoadImage("carYellow1");
+        }
+        else if (hullIntegrity.Value == 0)
+        {
+            ExplodeCar();
+            player.Image = LoadImage("carYellow0");
+        }
+        MainMenu();
     }
 
     public void AddTimers()
@@ -325,8 +335,18 @@ public class autopeli : PhysicsGame
 
         if (target == debris)
         {
-            // TODO: Poista debris (räjäytä tjms.?).
+            debris.Destroy();
             // TODO: Laske pelaajan hullIntegrityä 1:llä ja muuta auton ulkonäköä.
+        }
+        else if (target == fuel)
+        {
+            fuel.Destroy();
+            // TODO: Lisää pelaajan bensaa.
+        }
+        else if (target == carepackage)
+        {
+            carepackage.Destroy();
+            // TODO: Paranna pelaajan hullIntegrityä.
         }
     }
 
@@ -355,19 +375,26 @@ public class autopeli : PhysicsGame
 
         // TODO: Poista lossReason näytöltä.
 
-        /* TODO: 2-3 sekunnin alaspäin laskeva laskuri ja label.
-        IntMeter lossMeter = new IntMeter(3);
-        Timer lossTimer = new Timer();
-        lossTimer.Interval = 1;
-        lossTimer.Start();
+        DoubleMeter lossTimer = new DoubleMeter(3);
         Label lossTimerDisplay = new Label();
         lossTimerDisplay.TextColor = Color.White;
-        lossTimerDisplay.BindTo(lossMeter);
+        lossTimerDisplay.BindTo(lossTimer);
         Add(lossTimerDisplay);
-        */
+
+        Timer helpTimer = new Timer();
+        helpTimer.Interval = 1;
+        helpTimer.Timeout += HelpTimer_Timeout;
+        helpTimer.Start();
 
         Mouse.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
         Keyboard.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
+    }
+
+    private void HelpTimer_Timeout()
+    {
+        lossTimer.Value -= 1.0;
+        helpTimer.Stop();
+        throw new NotImplementedException();
     }
 
     public void EndMenu()
@@ -410,7 +437,16 @@ public class autopeli : PhysicsGame
 
     public void Hiscores()
     {
-        // TODO: Määritä pistelista.
+        ClearAll();
+
+        HighScoreWindow hiscoresWindow = new HighScoreWindow("Top Score", hiscores);
+        hiscoresWindow.Closed += SaveHiscores;
+        Add(hiscoresWindow);
+    }
+
+    public void SaveHiscores()
+    {
+        DataStorage.Save<ScoreList>(hiscores, "hiscores.xml");
     }
 
     public void ExitGame()
