@@ -25,6 +25,7 @@ public class autopeli : PhysicsGame
     PhysicsObject debris;
     PhysicsObject fuel;
     PhysicsObject carepackage;
+    PhysicsObject finishline;
     PhysicsObject player;
     PhysicsObject rightBorder;
     PhysicsObject leftBorder;
@@ -144,7 +145,6 @@ public class autopeli : PhysicsGame
         CreateRoad();
         AddMeters();
 
-        // TODO: korjaa?
         AddCollisionHandler(player, HandleCollisions);
 
         Level.BackgroundColor = Color.Gray;
@@ -172,7 +172,7 @@ public class autopeli : PhysicsGame
     {
         player = new PhysicsObject(5.0, 10.0);
         player.Shape = Shape.Rectangle;
-        // TODO: player.Image = ???.
+        player.Image = LoadImage("carYellow3");
         player.Y = -150.0;
         player.Restitution = 0.35;
         Add(player);
@@ -280,7 +280,7 @@ public class autopeli : PhysicsGame
 
     public void SetSpeed(Vector direction)
     {
-        // TODO: Estä sivuttaisliikkeen pysähtyminen törmätessä.
+        // TODO: Estä sivuttaisliikkeen pysähtyminen törmätessä...?
         if (((direction.Y > 0) && (player.Top >= topBorder.Top)) || ((direction.Y < 0) && (player.Bottom <= bottomBorder.Bottom)))
         {
             player.Velocity = Vector.Zero;
@@ -331,22 +331,52 @@ public class autopeli : PhysicsGame
 
     public void HandleCollisions(PhysicsObject player, PhysicsObject target)
     {
-        // TODO: Muita vaihtoehtoja kuin debris?
-
         if (target == debris)
         {
             debris.Destroy();
-            // TODO: Laske pelaajan hullIntegrityä 1:llä ja muuta auton ulkonäköä.
-        }
-        else if (target == fuel)
-        {
-            fuel.Destroy();
-            // TODO: Lisää pelaajan bensaa.
+            hullIntegrity.Value--;
+            switch (hullIntegrity.Value)
+            {
+                case 3:
+                    player.Image = LoadImage("carYellow3");
+                    break;
+                case 2:
+                    player.Image = LoadImage("carYellow2");
+                    break;
+                case 1:
+                    player.Image = LoadImage("carYellow1");
+                    break;
+                case 0:
+                    player.Image = LoadImage("carYellow0");
+                    break;
+            }
         }
         else if (target == carepackage)
         {
             carepackage.Destroy();
-            // TODO: Paranna pelaajan hullIntegrityä.
+            hullIntegrity.Value++;
+            switch (hullIntegrity.Value)
+            {
+                case 4:
+                    player.Image = LoadImage("carYellow4");
+                    break;
+                case 3:
+                    player.Image = LoadImage("carYellow3");
+                    break;
+                case 2:
+                    player.Image = LoadImage("carYellow2");
+                    break;
+            }
+        }
+        else if (target == fuel)
+        {
+            fuel.Destroy();
+            fuelRemaining.Value += RandomGen.NextDouble(10.0, 30.0);
+        }
+        else if (target == finishline)
+        {
+            // TODO: Lisää finishline ja tee tästä järkevä.
+            GameWin();
         }
     }
 
@@ -451,6 +481,6 @@ public class autopeli : PhysicsGame
 
     public void ExitGame()
     {
-        // TODO: Määritä pelistä poistuminen.
+        Exit();
     }
 }
