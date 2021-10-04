@@ -328,7 +328,7 @@ public class autopeli : PhysicsGame
 
     public void AddTimers()
     {
-
+        // TODO: Keksi fiksu tapa lisätä matkamittariin ajastin ja if lauseet.
     }
 
     public void HandleCollisions(PhysicsObject player, PhysicsObject target)
@@ -396,17 +396,12 @@ public class autopeli : PhysicsGame
         GameOver("Game Over: Your car broke down!");
     }
 
-    public void GameWin()
+    public void TimeIsUp()
     {
-        Label winReason = new Label("You made it!");
-        Add(winReason);
+        // TODO: kentän pysähtyminen.
 
         Task.Delay(2000);
-
-        // TODO: Poista winReason näytöltä.
-
-        Mouse.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
-        Keyboard.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
+        GameOver("Game Over: You ran out of fuel!");
     }
 
     public void GameOver(string loseMessage)
@@ -433,6 +428,19 @@ public class autopeli : PhysicsGame
         Keyboard.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
     }
 
+    public void GameWin()
+    {
+        Label winReason = new Label("You made it!");
+        Add(winReason);
+
+        Task.Delay(2000);
+
+        // TODO: Poista winReason näytöltä.
+
+        Mouse.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
+        Keyboard.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
+    }
+
     private void HelpTimer_Timeout()
     {
         lossTimer.Value -= 1.0;
@@ -442,6 +450,8 @@ public class autopeli : PhysicsGame
 
     public void EndMenu()
     {
+        MediaPlayer.Stop();
+
         endMenuButtons = new List<Label>();
 
         Label retry = new Label("Retry");
