@@ -254,6 +254,8 @@ public class autopeli : PhysicsGame
 
     public void StartGame()
     {
+        BackgroundMusic();
+
         foreach (PhysicsObject x in objectGroup)
         {
             x.Hit(speed * x.Mass);
@@ -333,6 +335,9 @@ public class autopeli : PhysicsGame
     {
         if (target == debris)
         {
+            // TODO: Luo ja liitä äänitehoste.
+            SoundEffect crash = LoadSoundEffect("intense_explosion");
+            crash.Play();
             debris.Destroy();
             hullIntegrity.Value--;
             switch (hullIntegrity.Value)
@@ -393,7 +398,15 @@ public class autopeli : PhysicsGame
 
     public void GameWin()
     {
-        // TODO: Määritä voitto.
+        Label winReason = new Label("You made it!");
+        Add(winReason);
+
+        Task.Delay(2000);
+
+        // TODO: Poista winReason näytöltä.
+
+        Mouse.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
+        Keyboard.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
     }
 
     public void GameOver(string loseMessage)
@@ -482,5 +495,10 @@ public class autopeli : PhysicsGame
     public void ExitGame()
     {
         Exit();
+    }
+    public void BackgroundMusic()
+    {
+        MediaPlayer.Play("default_5");
+        MediaPlayer.IsRepeating = true;
     }
 }
