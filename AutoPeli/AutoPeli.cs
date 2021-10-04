@@ -15,6 +15,9 @@ public class autopeli : PhysicsGame
     Vector speed;
 
     string playerName;
+    bool gameIsOn = false;
+    bool gamePassed = false;
+    bool enduranceUnlocked = false;
 
     List<Label> mainMenuButtons;
     List<Label> difficultyMenuButtons;
@@ -33,21 +36,34 @@ public class autopeli : PhysicsGame
     PhysicsObject bottomBorder;
 
     IntMeter hullIntegrity = new IntMeter(3, 0, 4);
+
     DoubleMeter distanceRemaining = new DoubleMeter(1000.0, 0.0, 1100.0);
+    Label distanceMeter= new Label();
+    Timer distanceHelpTimer = new Timer();
+
     DoubleMeter fuelRemaining = new DoubleMeter(100.0, 0.0, 100.0);
+    Label fuelMeter= new Label();
+    Timer fuelHelpTimer= new Timer();
+
+    DoubleMeter endTimer = new DoubleMeter(3);
+    Label endTimerDisplay = new Label();
+    Timer endHelpTimer = new Timer();
+    Label endReason = new Label();
 
     ScoreList hiscores = new ScoreList(20, false, 0);
+    HighScoreWindow hiscoresWindow;
+
 
     public override void Begin()
     {
         hiscores = DataStorage.TryLoad<ScoreList>(hiscores, "hiscores.xml");
+        SetWindowSize(1920, 1080);
+
         SetPlayerName();
-        MainMenu();
         SetControls();
-        AddMeters();
-        AddTimers();
-        StartGame();
+        MainMenu();
     }
+
 
     public void SetPlayerName()
     {
@@ -56,6 +72,7 @@ public class autopeli : PhysicsGame
 
         playerName = nameQuery.InputBox.Text;
     }
+
 
     public void MainMenu()
     {
@@ -108,6 +125,7 @@ public class autopeli : PhysicsGame
         }
     }
 
+
     public void DifficultySelection()
     {
         ClearAll();
@@ -137,48 +155,59 @@ public class autopeli : PhysicsGame
         Mouse.ListenOn(hard, MouseButton.Left, ButtonState.Pressed, CreateStage, null, "hard");
     }
 
+
     public void CreateStage(string difficulty)
     {
         ClearAll();
-        CreatePlayer();
-        CreateBorders();
-        CreateRoad();
-        AddMeters();
 
-        AddCollisionHandler(player, HandleCollisions);
+        AddPlayer();
+        AddBorders();
+        AddRoad();
 
         Level.BackgroundColor = Color.Gray;
         Camera.ZoomToLevel();
 
         if (difficulty == "easy")
         {
-            CreateObjects(RandomGen.NextDouble(3, 6), RandomGen.NextDouble(3, 6), 50, 10, 3, -250.0);
-            StartGame();
+            AddDebris(RandomGen.NextDouble(3, 6), RandomGen.NextDouble(3, 6), 50);
+            AddFuel(10);
+            AddCarepackage(3);
+            StartGame(-250.0);
         }
         else if (difficulty == "medium")
         {
-            CreateObjects(RandomGen.NextDouble(4, 8), RandomGen.NextDouble(4, 8), 75, 8, 2, -300.0);
-            StartGame();
+            AddDebris(RandomGen.NextDouble(4, 8), RandomGen.NextDouble(4, 8), 75);
+            AddFuel(8);
+            AddCarepackage(2);
+            StartGame(-300.0);
         }
         else if (difficulty == "hard")
         {
-            CreateObjects(RandomGen.NextDouble(5, 10), RandomGen.NextDouble(5, 10), 100, 6, 1, -350.0);
-            StartGame();
+            AddDebris(RandomGen.NextDouble(5, 10), RandomGen.NextDouble(5, 10), 100);
+            AddFuel(6);
+            AddCarepackage(1);
+            StartGame(-350.0);
         }
         MainMenu();
     }
 
-    public void CreatePlayer()
+
+    public void AddPlayer()
     {
         player = new PhysicsObject(5.0, 10.0);
         player.Shape = Shape.Rectangle;
         player.Image = LoadImage("carYellow3");
         player.Y = -150.0;
         player.Restitution = 0.35;
+        AddCollisionHandler(player, "debris_group", CollisionWithDebris);
+        AddCollisionHandler(player, "fuel_group", CollisionWithFuel);
+        AddCollisionHandler(player, "debris_carepackage_group", CollisionWithCarepackage);
+        AddCollisionHandler(player, "finishline_group", CollisionWithFinishline);
         Add(player);
     }
 
-    public void CreateBorders()
+
+    public void AddBorders()
     {
         // TODO: for loop?
         rightBorder = Level.CreateRightBorder();
@@ -198,80 +227,104 @@ public class autopeli : PhysicsGame
         bottomBorder.IsVisible = false;
     }
 
-    public void CreateRoad()
+
+    public void AddRoad()
     {
         // TODO: Lisää tien ominaisuudet (keskiviivat??).
-        // TODO: Lisää maaliviiva.
+        finishline = new PhysicsObject(Screen.Width, 20.0);
+        finishline.Y = (Screen.Top + 1000.0);
+        finishline.Image = LoadImage("finishline");
+        finishline.CanRotate = false;
+        finishline.IgnoresCollisionResponse = true;
+        fuel.Tag = "finishline_group";
+        objectGroup.Add(finishline);
+        Add(finishline);
     }
 
-    public void CreateObjects(double debrisX, double debrisY, int debrisAmount, int fuelAmount, int carepackageAmount, double carSpeed)
+    public void AddDebris(double debrisX, double debrisY, int debrisAmount)
     {
-        speed = new Vector(0.0, carSpeed);
-
-        debris = new PhysicsObject(debrisX, debrisY);
-        debris.Shape = Shape.Hexagon;
-        // TODO: debris.Image = ???.
-
-        fuel = new PhysicsObject(5.0, 5.0);
-        fuel.Shape = Shape.Circle;
-        fuel.Image = LoadImage("fuel");
-
-        carepackage = new PhysicsObject(5.0, 5.0);
-        carepackage.Shape = Shape.Circle;
-        carepackage.Image = LoadImage("carepackage");
-
         for (int i = 0; i < debrisAmount + 1; i++)
         {
+            debris = new PhysicsObject(debrisX, debrisY);
             //debris.Position = RandomGen.NextVector(Screen.Left + 5.0, Screen.Top + 20.0, Screen.Right - 5.0, Screen.Top + 980.0)
             debris.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
             debris.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
             debris.Shape = RandomGen.NextShape();
             debris.Angle = RandomGen.NextAngle();
             debris.Color = Color.White;
+            // TODO: debris.Image = ???.
+            debris.CanRotate = false;
+            debris.Tag = "debris_group";
             objectGroup.Add(debris);
             Add(debris);
-            debris.Hit(speed * debris.Mass);
-        }
-
-        for (int i = 0; i < fuelAmount + 1; i++)
-        {
-            fuel.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
-            fuel.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
-            objectGroup.Add(fuel);
-            Add(fuel);
-            fuel.Hit(speed * fuel.Mass);
-        }
-
-        for (int i = 0; i < carepackageAmount + 1; i++)
-        { 
-            carepackage.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
-            carepackage.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
-            objectGroup.Add(carepackage);
-            Add(carepackage);
-            carepackage.Hit(speed * carepackage.Mass);
         }
     }
 
-    public void StartGame()
+
+    public void AddFuel(int fuelAmount)
     {
-        BackgroundMusic();
+        for (int i = 0; i < fuelAmount + 1; i++)
+        {
+            fuel = new PhysicsObject(5.0, 5.0);
+            fuel.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
+            fuel.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
+            fuel.Shape = Shape.Circle;
+            fuel.Image = LoadImage("fuel");
+            fuel.CanRotate = false;
+            fuel.IgnoresCollisionResponse = true;
+            fuel.Tag = "fuel_group";
+            objectGroup.Add(fuel);
+            Add(fuel);
+        }
+    }
+
+
+    public void AddCarepackage(int carepackageAmount)
+    {
+        for (int i = 0; i < carepackageAmount + 1; i++)
+        {
+            carepackage = new PhysicsObject(5.0, 5.0);
+            carepackage.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
+            carepackage.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
+            carepackage.Shape = Shape.Circle;
+            carepackage.Image = LoadImage("carepackage");
+            carepackage.CanRotate = false;
+            carepackage.IgnoresCollisionResponse = true;
+            carepackage.Tag = "carepackage_group";
+            objectGroup.Add(carepackage);
+            Add(carepackage);
+        }
+    }
+
+
+    public void StartGame(double carSpeed)
+    {
+        AddBackgroundMusic();
+
+        speed = new Vector(0.0, carSpeed);
 
         foreach (PhysicsObject x in objectGroup)
         {
             x.Hit(speed * x.Mass);
         }
+
+        AddFuelMeter();
+        AddDistanceMeter();
+
+        gameIsOn = true;
     }
+
 
     public void SetControls()
     {
-        Keyboard.Listen(Key.W, ButtonState.Down, SetSpeed, "Accelerate", moveUp);
-        Keyboard.Listen(Key.W, ButtonState.Released, SetSpeed, null, Vector.Zero);
-        Keyboard.Listen(Key.S, ButtonState.Down, SetSpeed, "Decelerate", moveDown);
-        Keyboard.Listen(Key.S, ButtonState.Released, SetSpeed, null, Vector.Zero);
-        Keyboard.Listen(Key.A, ButtonState.Down, SetSpeed, "Steer left", moveLeft);
-        Keyboard.Listen(Key.A, ButtonState.Released, SetSpeed, null, Vector.Zero);
-        Keyboard.Listen(Key.D, ButtonState.Down, SetSpeed, "Steer right", moveRight);
-        Keyboard.Listen(Key.D, ButtonState.Released, SetSpeed, null, Vector.Zero);
+        Keyboard.Listen(Key.W, ButtonState.Down, SetPlayerMovementSpeed, "Accelerate", moveUp);
+        Keyboard.Listen(Key.W, ButtonState.Released, SetPlayerMovementSpeed, null, Vector.Zero);
+        Keyboard.Listen(Key.S, ButtonState.Down, SetPlayerMovementSpeed, "Decelerate", moveDown);
+        Keyboard.Listen(Key.S, ButtonState.Released, SetPlayerMovementSpeed, null, Vector.Zero);
+        Keyboard.Listen(Key.A, ButtonState.Down, SetPlayerMovementSpeed, "Steer left", moveLeft);
+        Keyboard.Listen(Key.A, ButtonState.Released, SetPlayerMovementSpeed, null, Vector.Zero);
+        Keyboard.Listen(Key.D, ButtonState.Down, SetPlayerMovementSpeed, "Steer right", moveRight);
+        Keyboard.Listen(Key.D, ButtonState.Released, SetPlayerMovementSpeed, null, Vector.Zero);
 
         Keyboard.Listen(Key.F1, ButtonState.Pressed, ShowControlHelp, "Show controls");
         Keyboard.Listen(Key.Escape, ButtonState.Pressed, ConfirmExit, "End game");
@@ -280,7 +333,8 @@ public class autopeli : PhysicsGame
         // PhoneBackButton.Listen(ConfirmExit, "End Game");
     }
 
-    public void SetSpeed(Vector direction)
+
+    public void SetPlayerMovementSpeed(Vector direction)
     {
         // TODO: Estä sivuttaisliikkeen pysähtyminen törmätessä...?
         if (((direction.Y > 0) && (player.Top >= topBorder.Top)) || ((direction.Y < 0) && (player.Bottom <= bottomBorder.Bottom)))
@@ -290,163 +344,214 @@ public class autopeli : PhysicsGame
         player.Velocity = direction;
     }
 
-    public void AddMeters()
+
+    public void AddDistanceMeter()
     {
-        Label distanceMeter = new Label();
         distanceMeter.BindTo(distanceRemaining);
         distanceMeter.X = Screen.Left + 50.0;
         distanceMeter.Y = Screen.Top - 50.0;
 
-        Label fuelMeter = new Label();
+        distanceHelpTimer.Interval = 0.1;
+        distanceHelpTimer.Timeout += DistanceHelpTimer_Timeout;
+        distanceHelpTimer.Start();
+    }
+
+    private void DistanceHelpTimer_Timeout()
+    {
+        distanceRemaining.Value -= 0.1;
+
+        if (distanceRemaining.Value == 0.0)
+        {
+            distanceRemaining.Stop();
+        }
+    }
+
+    public void AddFuelMeter()
+    {
         fuelMeter.BindTo(fuelRemaining);
         fuelMeter.X = Screen.Right - 50.0;
         fuelMeter.Y = Screen.Top - 50.0;
 
-        if (hullIntegrity.Value == 4)
-        {
-            player.Image = LoadImage("carYellow4");
-        }
-        else if (hullIntegrity.Value == 3)
-        {
-            player.Image = LoadImage("carYellow3");
-        }
-        else if (hullIntegrity.Value == 2)
-        {
-            player.Image = LoadImage("carYellow2");
-        }
-        else if (hullIntegrity.Value == 1)
-        {
-            player.Image = LoadImage("carYellow1");
-        }
-        else if (hullIntegrity.Value == 0)
-        {
-            ExplodeCar();
-            player.Image = LoadImage("carYellow0");
-        }
-        MainMenu();
+        fuelHelpTimer.Interval = 0.1;
+        fuelHelpTimer.Timeout += FuelHelpTimer_Timeout;
+        fuelHelpTimer.Start();
     }
 
-    public void AddTimers()
+    private void FuelHelpTimer_Timeout()
     {
-        // TODO: Keksi fiksu tapa lisätä matkamittariin ajastin ja if lauseet.
+        fuelRemaining.Value -= 0.1;
+
+        if (fuelRemaining.Value == 0.0)
+        {
+            FuelRanOut();
+        }
     }
 
-    public void HandleCollisions(PhysicsObject player, PhysicsObject target)
+
+    public void CollisionWithDebris(PhysicsObject player, PhysicsObject target)
     {
-        if (target == debris)
+        if (gameIsOn == false) return;
+        
+        SoundEffect crash = LoadSoundEffect("intense_explosion");
+        crash.Play();
+        debris.Destroy();
+        hullIntegrity.Value--;
+
+        switch (hullIntegrity.Value)
         {
-            // TODO: Luo ja liitä äänitehoste.
-            SoundEffect crash = LoadSoundEffect("intense_explosion");
-            crash.Play();
-            debris.Destroy();
-            hullIntegrity.Value--;
-            switch (hullIntegrity.Value)
-            {
-                case 3:
-                    player.Image = LoadImage("carYellow3");
-                    break;
-                case 2:
-                    player.Image = LoadImage("carYellow2");
-                    break;
-                case 1:
-                    player.Image = LoadImage("carYellow1");
-                    break;
-                case 0:
-                    player.Image = LoadImage("carYellow0");
-                    break;
-            }
-        }
-        else if (target == carepackage)
-        {
-            carepackage.Destroy();
-            hullIntegrity.Value++;
-            switch (hullIntegrity.Value)
-            {
-                case 4:
-                    player.Image = LoadImage("carYellow4");
-                    break;
-                case 3:
-                    player.Image = LoadImage("carYellow3");
-                    break;
-                case 2:
-                    player.Image = LoadImage("carYellow2");
-                    break;
-            }
-        }
-        else if (target == fuel)
-        {
-            fuel.Destroy();
-            fuelRemaining.Value += RandomGen.NextDouble(10.0, 30.0);
-        }
-        else if (target == finishline)
-        {
-            // TODO: Lisää finishline ja tee tästä järkevä.
-            GameWin();
+            case 3:
+                player.Image = LoadImage("carYellow3");
+                break;
+            case 2:
+                player.Image = LoadImage("carYellow2");
+                break;
+            case 1:
+                player.Image = LoadImage("carYellow1");
+                break;
+            case 0:
+                ExplodeCar();
+                break;
         }
     }
+
+    public void CollisionWithFuel(PhysicsObject player, PhysicsObject target)
+    {
+        if (gameIsOn == false) return;
+
+        fuel.Destroy();
+        fuelRemaining.Value += RandomGen.NextDouble(10.0, 30.0);
+    }
+
+
+    public void CollisionWithCarepackage(PhysicsObject player, PhysicsObject target)
+    {
+        if (gameIsOn == false) return;
+
+        carepackage.Destroy();
+        hullIntegrity.Value++;
+
+        switch (hullIntegrity.Value)
+        {
+            case 4:
+                player.Image = LoadImage("carYellow4");
+                break;
+            case 3:
+                player.Image = LoadImage("carYellow3");
+                break;
+            case 2:
+                player.Image = LoadImage("carYellow2");
+                break;
+        }
+    }
+
+
+    public void CollisionWithFinishline(PhysicsObject player, PhysicsObject target)
+    {
+        if (gameIsOn == false) return;
+
+        GameWin("You made it!");
+    }
+
 
     public void ExplodeCar()
     {
-        // TODO: kentän pysähtyminen.
-        // TODO: räjähdys.
-        // TODO: player.Image = ???.
+        Keyboard.DisableAll();
+        gameIsOn = false;
+        StopAll();
+        Explosion carExplosion = new Explosion(player.Width);
+        carExplosion.Position = player.Position;
+        Add(carExplosion);
+        player.Image = LoadImage("carYellow0");
 
         Task.Delay(2000);
-
-        GameOver("Game Over: Your car broke down!");
+        GameOver("Your car broke down!");
     }
 
-    public void TimeIsUp()
+
+    public void FuelRanOut()
     {
-        // TODO: kentän pysähtyminen.
+        Keyboard.DisableAll();
+        gameIsOn = false;
+        StopAll();
 
         Task.Delay(2000);
-        GameOver("Game Over: You ran out of fuel!");
+        GameOver("You ran out of fuel!");
     }
 
-    public void GameOver(string loseMessage)
+
+    public void GameWin(string winMessage)
     {
-        Label lossReason = new Label(loseMessage);
-        Add(lossReason);
+        enduranceUnlocked = true;
+        gamePassed = true;
+        Keyboard.DisableAll();
+
+        distanceHelpTimer.Stop();
+        fuelHelpTimer.Stop();
+
+        foreach (PhysicsObject x in objectGroup)
+        {
+            x.Stop();
+        }
+
+        player.Hit(new Vector(0.0, 1000.0));
 
         Task.Delay(2000);
 
-        // TODO: Poista lossReason näytöltä.
+        Add(endReason);
 
-        DoubleMeter lossTimer = new DoubleMeter(3);
-        Label lossTimerDisplay = new Label();
-        lossTimerDisplay.TextColor = Color.White;
-        lossTimerDisplay.BindTo(lossTimer);
-        Add(lossTimerDisplay);
+        Task.Delay(3000);
 
-        Timer helpTimer = new Timer();
-        helpTimer.Interval = 1;
-        helpTimer.Timeout += HelpTimer_Timeout;
-        helpTimer.Start();
+        EndCountdown(winMessage);
+        endReason.Destroy();
+
+        Keyboard.EnableAll();
 
         Mouse.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
         Keyboard.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
     }
 
-    public void GameWin()
+
+    public void GameOver(string lossMessage)
     {
-        Label winReason = new Label("You made it!");
-        Add(winReason);
+        gamePassed = false;
 
-        Task.Delay(2000);
+        Add(endReason);
 
-        // TODO: Poista winReason näytöltä.
+        Task.Delay(3000);
+
+        EndCountdown(lossMessage);
+        endReason.Destroy();
+
+        Keyboard.EnableAll();
 
         Mouse.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
         Keyboard.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
     }
 
-    private void HelpTimer_Timeout()
+
+    public void EndCountdown(string endMessage)
     {
-        lossTimer.Value -= 1.0;
-        helpTimer.Stop();
-        throw new NotImplementedException();
+        endTimerDisplay.TextColor = Color.White;
+        endTimerDisplay.BindTo(endTimer);
+        Add(endTimerDisplay);
+
+        endHelpTimer.Interval = 1;
+        endHelpTimer.Timeout += EndHelpTimer_Timeout;
+        endHelpTimer.Start();
     }
+
+
+    void EndHelpTimer_Timeout()
+    {
+        endTimer.Value -= 1.0;
+
+        if (endTimer.Value == 0)
+        {
+            endHelpTimer.Stop();
+            endTimerDisplay.Destroy();
+        }
+    }
+
 
     public void EndMenu()
     {
@@ -458,20 +563,20 @@ public class autopeli : PhysicsGame
         retry.Y = 50.0;
         endMenuButtons.Add(retry);
 
-        /* TODO:
-        if (??? == ???)
+        if (gamePassed == false)
         {
             Label changeDifficulty = new Label("Change difficulty");
             changeDifficulty.Y = 0;
             endMenuButtons.Add(changeDifficulty);
+
+
         }
-        else if (??? == ???)
+        else if (gamePassed == true)
         {
             Label hiscores = new Label("Hiscores");
             hiscores.Y = 0;
             endMenuButtons.Add(hiscores);
         }
-        */
 
         Label quit = new Label("Quit");
         quit.Y = -50.0;
@@ -485,30 +590,41 @@ public class autopeli : PhysicsGame
         Mouse.ListenMovement(1.0, MenuMovement, null, endMenuButtons);
         Mouse.ListenOn(retry, MouseButton.Left, ButtonState.Pressed, /* TODO: ???.*/, null, /* TODO: ???.*/);
         Mouse.ListenOn(changeDifficulty, MouseButton.Left, ButtonState.Pressed, DifficultySelection, null);
+        Mouse.ListenOn(hiscores, MouseButton.Left, ButtonState.Pressed, DifficultySelection, null);
         Mouse.ListenOn(quit, MouseButton.Left, ButtonState.Pressed, MainMenu, null);
     }
+
 
     public void Hiscores()
     {
         ClearAll();
 
-        HighScoreWindow hiscoresWindow = new HighScoreWindow("Top Score", hiscores);
-        hiscoresWindow.Closed += SaveHiscores;
+        hiscoresWindow = new HighScoreWindow("Top Score", hiscores);
+        hiscoresWindow.Closed += HiscoresWindow_Closed;
         Add(hiscoresWindow);
     }
 
-    public void SaveHiscores()
+    private void HiscoresWindow_Closed(Window sender)
     {
         DataStorage.Save<ScoreList>(hiscores, "hiscores.xml");
     }
+
 
     public void ExitGame()
     {
         Exit();
     }
-    public void BackgroundMusic()
+
+
+    public void AddBackgroundMusic()
     {
         MediaPlayer.Play("default_5");
         MediaPlayer.IsRepeating = true;
+    }
+
+
+    public void UnlockEnduranceMode()
+    {
+        // TODO: Lisää uusi pelimuoto alkuvalikkoon.
     }
 }
