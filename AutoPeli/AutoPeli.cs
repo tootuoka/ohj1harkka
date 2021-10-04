@@ -15,9 +15,11 @@ public class autopeli : PhysicsGame
     Vector speed;
 
     string playerName;
+    int arcadeDifficulty = 0;
     bool gameIsOn = false;
     bool gamePassed = false;
-    bool enduranceUnlocked = false;
+    bool gameFullyUnlocked = false;
+    bool firstCompletion = true;
 
     List<Label> mainMenuButtons;
     List<Label> difficultyMenuButtons;
@@ -57,7 +59,7 @@ public class autopeli : PhysicsGame
     public override void Begin()
     {
         hiscores = DataStorage.TryLoad<ScoreList>(hiscores, "hiscores.xml");
-        SetWindowSize(1920, 1080);
+        SetWindowSize(1280, 720);
 
         SetPlayerName();
         SetControls();
@@ -76,28 +78,47 @@ public class autopeli : PhysicsGame
 
     public void MainMenu()
     {
-        /*MultiSelectWindow mainMenu = new MultiSelectWindow("Main Menu", "Play", "Hiscore", "Exit");
-        mainMenu.Color = Color.Gray;
-        mainMenu.AddItemHandler(0, SelectDifficulty);
-        mainMenu.AddItemHandler(1, OpenHiscore);
-        mainMenu.AddItemHandler(2, SelectDifficulty);
-        mainMenu.DefaultCancel = 2;*/
-
         ClearAll();
+        
+        SetWindowSize(1280, 720);
+        Level.Background.Image = LoadImage("mainmenu_bgimg");
+
+        if (gameFullyUnlocked == true && firstCompletion == true)
+        {
+            DisplayUnlockMessage();
+        }
 
         mainMenuButtons = new List<Label>();
 
-        Label button1 = new Label("Play");
-        button1.Y = 50.0;
-        mainMenuButtons.Add(button1);
+        if (gameFullyUnlocked == true)
+        {
+            Label button1 = new Label("Arcade Mode");
+            button1.Y = 60.0;
+            mainMenuButtons.Add(button1);
 
-        Label button2 = new Label("Hiscore");
-        button2.Y = 0;
-        mainMenuButtons.Add(button2);
+            Label button2 = new Label("Endurance Mode");
+            button2.Y = 20.0;
+            mainMenuButtons.Add(button2);
 
-        Label button3 = new Label("Exit");
-        button3.Y = -50.0;
-        mainMenuButtons.Add(button3);
+            Label button3 = new Label("Hiscore");
+            button3.Y = -20.0;
+            mainMenuButtons.Add(button3);
+
+            Label button4 = new Label("Exit");
+            button4.Y = -60.0;
+            mainMenuButtons.Add(button4);
+        }
+
+        else if (gameFullyUnlocked == false)
+        {
+            Label button1 = new Label("Arcade Mode");
+            button1.Y = 50.0;
+            mainMenuButtons.Add(button1);
+
+            Label button4 = new Label("Exit");
+            button4.Y = -50.0;
+            mainMenuButtons.Add(button4);
+        }
 
         foreach (Label button in mainMenuButtons)
         {
@@ -169,6 +190,7 @@ public class autopeli : PhysicsGame
 
         if (difficulty == "easy")
         {
+            arcadeDifficulty = 1;
             AddDebris(RandomGen.NextDouble(3, 6), RandomGen.NextDouble(3, 6), 50);
             AddFuel(10);
             AddCarepackage(3);
@@ -176,6 +198,7 @@ public class autopeli : PhysicsGame
         }
         else if (difficulty == "medium")
         {
+            arcadeDifficulty = 2;
             AddDebris(RandomGen.NextDouble(4, 8), RandomGen.NextDouble(4, 8), 75);
             AddFuel(8);
             AddCarepackage(2);
@@ -183,6 +206,7 @@ public class autopeli : PhysicsGame
         }
         else if (difficulty == "hard")
         {
+            arcadeDifficulty = 3;
             AddDebris(RandomGen.NextDouble(5, 10), RandomGen.NextDouble(5, 10), 100);
             AddFuel(6);
             AddCarepackage(1);
@@ -299,6 +323,9 @@ public class autopeli : PhysicsGame
 
     public void StartGame(double carSpeed)
     {
+        ClearAll();
+
+        SetWindowSize(1920, 1080);
         AddBackgroundMusic();
 
         speed = new Vector(0.0, carSpeed);
@@ -481,7 +508,11 @@ public class autopeli : PhysicsGame
 
     public void GameWin(string winMessage)
     {
-        enduranceUnlocked = true;
+        if (arcadeDifficulty >= 3)
+        {
+            gameFullyUnlocked = true; 
+        }
+
         gamePassed = true;
         Keyboard.DisableAll();
 
@@ -623,8 +654,14 @@ public class autopeli : PhysicsGame
     }
 
 
-    public void UnlockEnduranceMode()
+    public void DisplayUnlockMessage()
     {
-        // TODO: Lisää uusi pelimuoto alkuvalikkoon.
+        Keyboard.DisableAll();
+
+        Label unlocks = new Label("You have beaten Arcade Mode on hard difficulty and unlocked Endurance Mode!");
+        Task.Delay(3000);
+        unlocks.Destroy();
+
+        Keyboard.EnableAll();
     }
 }
