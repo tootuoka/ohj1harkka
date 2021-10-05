@@ -27,10 +27,6 @@ public class autopeli : PhysicsGame
 
     List<PhysicsObject> objectGroup = new List<PhysicsObject>();
 
-    PhysicsObject debris;
-    PhysicsObject fuel;
-    PhysicsObject carepackage;
-    PhysicsObject finishline;
     PhysicsObject player;
     PhysicsObject rightBorder;
     PhysicsObject leftBorder;
@@ -59,11 +55,8 @@ public class autopeli : PhysicsGame
     public override void Begin()
     {
         hiscores = DataStorage.TryLoad<ScoreList>(hiscores, "hiscores.xml");
-        SetWindowSize(1280, 720);
-
         SetPlayerName();
-        SetControls();
-        MainMenu();
+        Keyboard.Listen(Key.Enter, ButtonState.Down, MainMenu, null);
     }
 
 
@@ -71,65 +64,60 @@ public class autopeli : PhysicsGame
     {
         InputWindow nameQuery = new InputWindow("Player Name: ");
         Add(nameQuery);
-
         playerName = nameQuery.InputBox.Text;
+
+        Label label = new Label("Press Enter");
+        label.Position = new Vector(140.0, -100.0);
+        Add(label);
     }
 
 
     public void MainMenu()
     {
         ClearAll();
-        
-        SetWindowSize(1280, 720);
-        Level.Background.Image = LoadImage("mainmenu_bgimg");
 
-       /* if (gameFullyUnlocked == true && firstCompletion == true)
-        {
-            DisplayUnlockMessage();
-        *///}
+        AddBackgroundMusic("menu_orig");
+        Level.Background.Image = LoadImage("mainmenu_bgimg");
 
         mainMenuButtons = new List<Label>();
 
-       /* if (gameFullyUnlocked == true)
+        if (gameFullyUnlocked)
         {
-            Label button1 = new Label("Arcade Mode");
-            button1.Y = 60.0;
-            mainMenuButtons.Add(button1);
+            if (firstCompletion) DisplayUnlockMessage();
 
-            Label button2 = new Label("Endurance Mode");
-            button2.Y = 20.0;
-            mainMenuButtons.Add(button2);
+            AddBackgroundMusic("menu_cmpl");
+            Label button1 = CreateButton("Arcade Mode", 60.0);
+            Label button2 = CreateButton("Endurance Mode", 20.0);
+            Label button3 = CreateButton("Hiscores", -20.0); ;
+            Label button4 = CreateButton("Exit", -60.0);
 
-            Label button3 = new Label("Hiscore");
-            button3.Y = -20.0;
-            mainMenuButtons.Add(button3);
+            foreach (Label button in mainMenuButtons)
+            {
+                Add(button);
+            }
 
-            Label button4 = new Label("Exit");
-            button4.Y = -60.0;
-            mainMenuButtons.Add(button4);
-        }*/
-
-        //else if (gameFullyUnlocked == false)
-        //{
-            Label button1 = new Label("Arcade Mode");
-            button1.Y = 50.0;
-            mainMenuButtons.Add(button1);
-
-            Label button4 = new Label("Exit");
-            button4.Y = -50.0;
-            mainMenuButtons.Add(button4);
-        //}
-
-        foreach (Label button in mainMenuButtons)
-        {
-            Add(button);
+            Mouse.ListenMovement(0.5, MenuMovement, null, mainMenuButtons);
+            Mouse.ListenOn(mainMenuButtons[0], MouseButton.Left, ButtonState.Pressed, DifficultySelection, null, "Arcade Mode");
+            Mouse.ListenOn(mainMenuButtons[1], MouseButton.Left, ButtonState.Pressed, DifficultySelection, null, "Endurance Mode");
+            Mouse.ListenOn(mainMenuButtons[2], MouseButton.Left, ButtonState.Pressed, Hiscores, null);
+            Mouse.ListenOn(mainMenuButtons[3], MouseButton.Left, ButtonState.Pressed, ExitGame, null);
         }
+        else
+        {
+            Label button1 = CreateButton("Arcade Mode", 20.0);
+            Label button2 = CreateButton("Exit", -20.0);
 
-        Mouse.ListenMovement(1.0, MenuMovement, null, mainMenuButtons);
-        Mouse.ListenOn(button1, MouseButton.Left, ButtonState.Pressed, DifficultySelection, null);
-        //Mouse.ListenOn(button1, MouseButton.Left, ButtonState.Pressed, Hiscores, null);
-        Mouse.ListenOn(button4, MouseButton.Left, ButtonState.Pressed, ExitGame, null);
+            foreach (Label button in mainMenuButtons)
+            {
+                Add(button);
+            }
+
+            Mouse.ListenMovement(0.5, MenuMovement, null, mainMenuButtons);
+            Mouse.ListenOn(mainMenuButtons[0], MouseButton.Left, ButtonState.Pressed, DifficultySelection, null, "Arcade Mode");
+            Mouse.ListenOn(mainMenuButtons[1], MouseButton.Left, ButtonState.Pressed, ExitGame, null);
+        }
     }
+
 
     public void MenuMovement(List<Label> menuType)
     {
@@ -147,7 +135,7 @@ public class autopeli : PhysicsGame
     }
 
 
-    public void DifficultySelection()
+    public void DifficultySelection(string mode)
     {
         ClearAll();
 
@@ -184,6 +172,7 @@ public class autopeli : PhysicsGame
         AddPlayer();
         AddBorders();
         AddRoad();
+        SetControls();
 
         Level.BackgroundColor = Color.Gray;
         Camera.ZoomToLevel();
@@ -191,26 +180,29 @@ public class autopeli : PhysicsGame
         if (difficulty == "easy")
         {
             arcadeDifficulty = 1;
-            AddDebris(RandomGen.NextDouble(3, 6), RandomGen.NextDouble(3, 6), 50);
+            AddDebris(RandomGen.NextDouble(15, 30), RandomGen.NextDouble(15, 30), 50);
             AddFuel(10);
             AddCarepackage(3);
             StartGame(-250.0);
+            return;
         }
         else if (difficulty == "medium")
         {
             arcadeDifficulty = 2;
-            AddDebris(RandomGen.NextDouble(4, 8), RandomGen.NextDouble(4, 8), 75);
+            AddDebris(RandomGen.NextDouble(20, 40), RandomGen.NextDouble(20, 40), 75);
             AddFuel(8);
             AddCarepackage(2);
             StartGame(-300.0);
+            return;
         }
         else if (difficulty == "hard")
         {
             arcadeDifficulty = 3;
-            AddDebris(RandomGen.NextDouble(5, 10), RandomGen.NextDouble(5, 10), 100);
+            AddDebris(RandomGen.NextDouble(25, 50), RandomGen.NextDouble(25, 50), 100);
             AddFuel(6);
             AddCarepackage(1);
             StartGame(-350.0);
+            return;
         }
         MainMenu();
     }
@@ -218,14 +210,15 @@ public class autopeli : PhysicsGame
 
     public void AddPlayer()
     {
-        player = new PhysicsObject(5.0, 10.0);
+        player = new PhysicsObject(20.0, 40.0);
         player.Shape = Shape.Rectangle;
         player.Image = LoadImage("carYellow3");
         player.Y = -150.0;
+        player.CanRotate = false;
         player.Restitution = 0.35;
         AddCollisionHandler(player, "debris_group", CollisionWithDebris);
         AddCollisionHandler(player, "fuel_group", CollisionWithFuel);
-        AddCollisionHandler(player, "debris_carepackage_group", CollisionWithCarepackage);
+        AddCollisionHandler(player, "carepackage_group", CollisionWithCarepackage);
         AddCollisionHandler(player, "finishline_group", CollisionWithFinishline);
         Add(player);
     }
@@ -233,29 +226,17 @@ public class autopeli : PhysicsGame
 
     public void AddBorders()
     {
-        // TODO: for loop?
-        rightBorder = Level.CreateRightBorder();
-        rightBorder.Restitution = 0.5;
-        rightBorder.IsVisible = true;
-
-        leftBorder = Level.CreateLeftBorder();
-        leftBorder.Restitution = 0.5;
-        leftBorder.IsVisible = true;
-
-        topBorder = Level.CreateTopBorder();
-        topBorder.Restitution = 0;
-        topBorder.IsVisible = false;
-
-        bottomBorder = Level.CreateBottomBorder();
-        bottomBorder.Restitution = 0;
-        bottomBorder.IsVisible = false;
+        Surfaces rightBorder = Level.CreateVerticalBorders(0.5, false);
+        Surfaces leftBorder = Level.CreateVerticalBorders(0.5, false);
+        Surfaces topBorder = Level.CreateHorizontalBorders(0, false);
+        Surfaces bottomBorder = Level.CreateHorizontalBorders(0, false);
     }
 
 
     public void AddRoad()
     {
         // TODO: Lisää tien ominaisuudet (keskiviivat??).
-        finishline = new PhysicsObject(Screen.Width, 20.0);
+        PhysicsObject finishline = new PhysicsObject(Screen.Width, 20.0);
         finishline.Y = (Screen.Top + 1000.0);
         finishline.Image = LoadImage("finishline");
         finishline.CanRotate = false;
@@ -265,12 +246,12 @@ public class autopeli : PhysicsGame
         Add(finishline);
     }
 
+
     public void AddDebris(double debrisX, double debrisY, int debrisAmount)
     {
         for (int i = 0; i < debrisAmount + 1; i++)
         {
-            debris = new PhysicsObject(debrisX, debrisY);
-            //debris.Position = RandomGen.NextVector(Screen.Left + 5.0, Screen.Top + 20.0, Screen.Right - 5.0, Screen.Top + 980.0)
+            PhysicsObject debris = new PhysicsObject(debrisX, debrisY);
             debris.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
             debris.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
             debris.Shape = RandomGen.NextShape();
@@ -289,7 +270,7 @@ public class autopeli : PhysicsGame
     {
         for (int i = 0; i < fuelAmount + 1; i++)
         {
-            fuel = new PhysicsObject(5.0, 5.0);
+            PhysicsObject fuel = new PhysicsObject(25.0, 25.0);
             fuel.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
             fuel.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
             fuel.Shape = Shape.Circle;
@@ -307,7 +288,7 @@ public class autopeli : PhysicsGame
     {
         for (int i = 0; i < carepackageAmount + 1; i++)
         {
-            carepackage = new PhysicsObject(5.0, 5.0);
+            PhysicsObject carepackage = new PhysicsObject(25.0, 25.0);
             carepackage.X = RandomGen.NextDouble(Screen.Left + 5.0, Screen.Right - 5.0);
             carepackage.Y = RandomGen.NextDouble(Screen.Top + 20.0, Screen.Top + 980.0);
             carepackage.Shape = Shape.Circle;
@@ -323,10 +304,7 @@ public class autopeli : PhysicsGame
 
     public void StartGame(double carSpeed)
     {
-        ClearAll();
-
-        SetWindowSize(1920, 1080);
-        AddBackgroundMusic();
+        AddBackgroundMusic("default_5");
 
         speed = new Vector(0.0, carSpeed);
 
@@ -338,6 +316,10 @@ public class autopeli : PhysicsGame
         AddFuelMeter();
         AddDistanceMeter();
 
+        Camera.Follow(player);
+        //Camera.FollowOffset = new Vector(Screen.Width / 2.5 - Screen.Bottom, 0.0);
+        //Camera.ZoomFactor = 1.2;
+        Camera.StayInLevel = true;
         gameIsOn = true;
     }
 
@@ -405,16 +387,12 @@ public class autopeli : PhysicsGame
 
     public void SetPlayerMovementSpeed(Vector direction)
     {
-        // TODO: Estä sivuttaisliikkeen pysähtyminen törmätessä...?
-        if (((direction.Y > 0) && (player.Top >= topBorder.Top)) || ((direction.Y < 0) && (player.Bottom <= bottomBorder.Bottom)))
+        if (direction.Y > 0 && player.Top > Screen.Bottom || direction.Y < 0 && player.Bottom < Screen.Top)
         {
-            player.Velocity = Vector.Zero;
+            player.Velocity = new Vector(direction.X, 0.0);
         }
         player.Velocity = direction;
     }
-
-
-
 
 
     public void CollisionWithDebris(PhysicsObject player, PhysicsObject target)
@@ -423,7 +401,7 @@ public class autopeli : PhysicsGame
         
         SoundEffect crash = LoadSoundEffect("intense_explosion");
         crash.Play();
-        debris.Destroy();
+        target.Destroy();
         hullIntegrity.Value--;
 
         switch (hullIntegrity.Value)
@@ -447,7 +425,9 @@ public class autopeli : PhysicsGame
     {
         if (gameIsOn == false) return;
 
-        fuel.Destroy();
+        SoundEffect replenish = LoadSoundEffect("fuel");
+        replenish.Play();
+        target.Destroy();
         fuelRemaining.Value += RandomGen.NextDouble(10.0, 30.0);
     }
 
@@ -456,7 +436,9 @@ public class autopeli : PhysicsGame
     {
         if (gameIsOn == false) return;
 
-        carepackage.Destroy();
+        SoundEffect improvement = LoadSoundEffect("carepackage");
+        improvement.Play();
+        target.Destroy();
         hullIntegrity.Value++;
 
         switch (hullIntegrity.Value)
@@ -490,6 +472,8 @@ public class autopeli : PhysicsGame
         Explosion carExplosion = new Explosion(player.Width);
         carExplosion.Position = player.Position;
         Add(carExplosion);
+        SoundEffect destruction = LoadSoundEffect("destruction");
+        destruction.Play();
         player.Image = LoadImage("carYellow0");
 
         Task.Delay(2000);
@@ -627,7 +611,7 @@ public class autopeli : PhysicsGame
         Mouse.ListenOn(quit, MouseButton.Left, ButtonState.Pressed, MainMenu, null);
     }
 
-
+    */
     public void Hiscores()
     {
         ClearAll();
@@ -639,23 +623,35 @@ public class autopeli : PhysicsGame
 
     private void HiscoresWindow_Closed(Window sender)
     {
-        DataStorage.Save<ScoreList>(hiscores, "hiscores.xml");
+        MainMenu();
     }
 
 
-    */public void ExitGame()
+    public void ExitGame()
     {
-        Exit();
+        ConfirmExit();
     }
-    /*
+    
 
 
-    */public void AddBackgroundMusic()
+    public void AddBackgroundMusic(string track)
     {
-        MediaPlayer.Play("default_5");
+        MediaPlayer.Stop();
+        MediaPlayer.Play(track);
         MediaPlayer.IsRepeating = true;
     }
-    /*
+
+
+
+    public Label CreateButton(string buttonText, double buttonY)
+    {
+        Label button = new Label(buttonText);
+        button.Y = buttonY;
+        mainMenuButtons.Add(button);
+        return button;
+    }
+
+
 
     public void DisplayUnlockMessage()
     {
@@ -664,7 +660,9 @@ public class autopeli : PhysicsGame
         Label unlocks = new Label("You have beaten Arcade Mode on hard difficulty and unlocked Endurance Mode!");
         Task.Delay(3000);
         unlocks.Destroy();
+        firstCompletion = false;
 
         Keyboard.EnableAll();
-    }*/
+    }
+   // DataStorage.Save<ScoreList>(hiscores, "hiscores.xml");
 }
