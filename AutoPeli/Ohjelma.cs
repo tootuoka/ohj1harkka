@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
 #endregion
 
 namespace Program
@@ -18,7 +17,7 @@ namespace Program
         [STAThread]
         static void Main()
         {
-            using (var game = new AutoPeli())
+            using (var game = new autopeli())
                 game.Run();
         }
     }

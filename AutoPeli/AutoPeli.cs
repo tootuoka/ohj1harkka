@@ -83,14 +83,14 @@ public class autopeli : PhysicsGame
         SetWindowSize(1280, 720);
         Level.Background.Image = LoadImage("mainmenu_bgimg");
 
-        if (gameFullyUnlocked == true && firstCompletion == true)
+       /* if (gameFullyUnlocked == true && firstCompletion == true)
         {
             DisplayUnlockMessage();
-        }
+        *///}
 
         mainMenuButtons = new List<Label>();
 
-        if (gameFullyUnlocked == true)
+       /* if (gameFullyUnlocked == true)
         {
             Label button1 = new Label("Arcade Mode");
             button1.Y = 60.0;
@@ -107,10 +107,10 @@ public class autopeli : PhysicsGame
             Label button4 = new Label("Exit");
             button4.Y = -60.0;
             mainMenuButtons.Add(button4);
-        }
+        }*/
 
-        else if (gameFullyUnlocked == false)
-        {
+        //else if (gameFullyUnlocked == false)
+        //{
             Label button1 = new Label("Arcade Mode");
             button1.Y = 50.0;
             mainMenuButtons.Add(button1);
@@ -118,7 +118,7 @@ public class autopeli : PhysicsGame
             Label button4 = new Label("Exit");
             button4.Y = -50.0;
             mainMenuButtons.Add(button4);
-        }
+        //}
 
         foreach (Label button in mainMenuButtons)
         {
@@ -127,8 +127,8 @@ public class autopeli : PhysicsGame
 
         Mouse.ListenMovement(1.0, MenuMovement, null, mainMenuButtons);
         Mouse.ListenOn(button1, MouseButton.Left, ButtonState.Pressed, DifficultySelection, null);
-        Mouse.ListenOn(button2, MouseButton.Left, ButtonState.Pressed, Hiscores, null);
-        Mouse.ListenOn(button3, MouseButton.Left, ButtonState.Pressed, ExitGame, null);
+        //Mouse.ListenOn(button1, MouseButton.Left, ButtonState.Pressed, Hiscores, null);
+        Mouse.ListenOn(button4, MouseButton.Left, ButtonState.Pressed, ExitGame, null);
     }
 
     public void MenuMovement(List<Label> menuType)
@@ -260,7 +260,7 @@ public class autopeli : PhysicsGame
         finishline.Image = LoadImage("finishline");
         finishline.CanRotate = false;
         finishline.IgnoresCollisionResponse = true;
-        fuel.Tag = "finishline_group";
+        finishline.Tag = "finishline_group";
         objectGroup.Add(finishline);
         Add(finishline);
     }
@@ -360,18 +360,6 @@ public class autopeli : PhysicsGame
         // PhoneBackButton.Listen(ConfirmExit, "End Game");
     }
 
-
-    public void SetPlayerMovementSpeed(Vector direction)
-    {
-        // TODO: Estä sivuttaisliikkeen pysähtyminen törmätessä...?
-        if (((direction.Y > 0) && (player.Top >= topBorder.Top)) || ((direction.Y < 0) && (player.Bottom <= bottomBorder.Bottom)))
-        {
-            player.Velocity = Vector.Zero;
-        }
-        player.Velocity = direction;
-    }
-
-
     public void AddDistanceMeter()
     {
         distanceMeter.BindTo(distanceRemaining);
@@ -410,9 +398,23 @@ public class autopeli : PhysicsGame
 
         if (fuelRemaining.Value == 0.0)
         {
-            FuelRanOut();
+            //FuelRanOut();
         }
     }
+
+
+    public void SetPlayerMovementSpeed(Vector direction)
+    {
+        // TODO: Estä sivuttaisliikkeen pysähtyminen törmätessä...?
+        if (((direction.Y > 0) && (player.Top >= topBorder.Top)) || ((direction.Y < 0) && (player.Bottom <= bottomBorder.Bottom)))
+        {
+            player.Velocity = Vector.Zero;
+        }
+        player.Velocity = direction;
+    }
+
+
+
 
 
     public void CollisionWithDebris(PhysicsObject player, PhysicsObject target)
@@ -436,7 +438,7 @@ public class autopeli : PhysicsGame
                 player.Image = LoadImage("carYellow1");
                 break;
             case 0:
-                ExplodeCar();
+                //ExplodeCar();
                 break;
         }
     }
@@ -476,11 +478,11 @@ public class autopeli : PhysicsGame
     {
         if (gameIsOn == false) return;
 
-        GameWin("You made it!");
+        //GameWin("You made it!");
     }
 
 
-    public void ExplodeCar()
+    /*public void ExplodeCar()
     {
         Keyboard.DisableAll();
         gameIsOn = false;
@@ -537,8 +539,8 @@ public class autopeli : PhysicsGame
 
         Keyboard.EnableAll();
 
-        Mouse.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
-        Keyboard.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
+        Mouse.Listen(Key./*TODO: ?.*//*, ButtonState.Pressed, EndMenu, null);
+        Keyboard.Listen(Key./*TODO: ?.*//*, ButtonState.Pressed, EndMenu, null);
     }
 
 
@@ -555,8 +557,8 @@ public class autopeli : PhysicsGame
 
         Keyboard.EnableAll();
 
-        Mouse.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
-        Keyboard.Listen(Key./*TODO: ?.*/, ButtonState.Pressed, EndMenu, null);
+        Mouse.Listen(Key./*TODO: ?.*//*, ButtonState.Pressed, EndMenu, null);
+        Keyboard.Listen(Key./*TODO: ?.*//*, ButtonState.Pressed, EndMenu, null);
     }
 
 
@@ -619,7 +621,7 @@ public class autopeli : PhysicsGame
         }
 
         Mouse.ListenMovement(1.0, MenuMovement, null, endMenuButtons);
-        Mouse.ListenOn(retry, MouseButton.Left, ButtonState.Pressed, /* TODO: ???.*/, null, /* TODO: ???.*/);
+        Mouse.ListenOn(retry, MouseButton.Left, ButtonState.Pressed, /* TODO: ???.*//*, null, /* TODO: ???.*//*);
         Mouse.ListenOn(changeDifficulty, MouseButton.Left, ButtonState.Pressed, DifficultySelection, null);
         Mouse.ListenOn(hiscores, MouseButton.Left, ButtonState.Pressed, DifficultySelection, null);
         Mouse.ListenOn(quit, MouseButton.Left, ButtonState.Pressed, MainMenu, null);
@@ -641,18 +643,19 @@ public class autopeli : PhysicsGame
     }
 
 
-    public void ExitGame()
+    */public void ExitGame()
     {
         Exit();
     }
+    /*
 
 
-    public void AddBackgroundMusic()
+    */public void AddBackgroundMusic()
     {
         MediaPlayer.Play("default_5");
         MediaPlayer.IsRepeating = true;
     }
-
+    /*
 
     public void DisplayUnlockMessage()
     {
@@ -663,5 +666,5 @@ public class autopeli : PhysicsGame
         unlocks.Destroy();
 
         Keyboard.EnableAll();
-    }
+    }*/
 }
