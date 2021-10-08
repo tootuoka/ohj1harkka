@@ -14,6 +14,7 @@ public class autopeli : PhysicsGame
     Vector moveRight;
     Vector speed;
 
+    string difficulty;
     string playerName;
     bool hardMode;
     bool finishlineSpawned;
@@ -35,6 +36,7 @@ public class autopeli : PhysicsGame
     PhysicsObject rightBorder;
     PhysicsObject leftBorder;
     PhysicsObject bottomBorder;
+    PhysicsObject topBorder;
 
     IntMeter hullIntegrity;
     ProgressBar hullLife;
@@ -97,17 +99,17 @@ public class autopeli : PhysicsGame
             if (firstCompletion) DisplayUnlockMessage();
 
             AddBackgroundMusic("menu_cmpl");
-            Label button1 = CreateButton("Arcade Mode", 60.0);
-            Label button2 = CreateButton("Endurance Mode", 20.0);
-            Label button3 = CreateButton("Hiscores", -20.0); ;
-            Label button4 = CreateButton("Exit", -60.0);
+            Label button1 = CreateButton("Arcade Mode", 60.0, mainMenuButtons);
+            Label button2 = CreateButton("Endurance Mode", 20.0, mainMenuButtons);
+            Label button3 = CreateButton("Hiscores", -20.0, mainMenuButtons);
+            Label button4 = CreateButton("Exit", -60.0, mainMenuButtons);
 
             foreach (Label button in mainMenuButtons)
             {
                 Add(button);
             }
 
-            //Mouse.ListenMovement(0.5, MenuMovement, null, mainMenuButtons);
+            Mouse.ListenMovement(0.5, MenuMovement, null, mainMenuButtons);
             Mouse.ListenOn(mainMenuButtons[0], MouseButton.Left, ButtonState.Pressed, DifficultySelection, null, "Arcade Mode");
             Mouse.ListenOn(mainMenuButtons[1], MouseButton.Left, ButtonState.Pressed, DifficultySelection, null, "Endurance Mode");
             Mouse.ListenOn(mainMenuButtons[2], MouseButton.Left, ButtonState.Pressed, Hiscores, null);
@@ -115,22 +117,22 @@ public class autopeli : PhysicsGame
         }
         else
         {
-            Label button1 = CreateButton("Arcade Mode", 20.0);
-            Label button2 = CreateButton("Exit", -20.0);
+            Label button1 = CreateButton("Arcade Mode", 20.0, mainMenuButtons);
+            Label button2 = CreateButton("Exit", -20.0, mainMenuButtons);
 
             foreach (Label button in mainMenuButtons)
             {
                 Add(button);
             }
 
-            //Mouse.ListenMovement(0.5, MenuMovement, null, mainMenuButtons);
+            Mouse.ListenMovement(0.5, MenuMovement, null, mainMenuButtons);
             Mouse.ListenOn(mainMenuButtons[0], MouseButton.Left, ButtonState.Pressed, DifficultySelection, null, "Arcade Mode");
             Mouse.ListenOn(mainMenuButtons[1], MouseButton.Left, ButtonState.Pressed, ExitGame, null);
         }
     }
 
 
-    /*public void MenuMovement(List<Label> menuType)
+    public void MenuMovement(List<Label> menuType)
     {
         foreach (Label button in menuType)
         {
@@ -143,7 +145,7 @@ public class autopeli : PhysicsGame
                 button.TextColor = Color.White;
             }
         }
-    }*/
+    }
 
 
     public void DifficultySelection(string mode)
@@ -152,38 +154,27 @@ public class autopeli : PhysicsGame
 
         difficultyMenuButtons = new List<Label>();
 
-        //CreateButton("Easy", 50.0);
-        //CreateButton("Medium", 0.0);
-        //CreateButton("Hard", -50.0);
-
-        Label easy = new Label("Easy");
-        easy.Y = 50.0;
-        difficultyMenuButtons.Add(easy);
-
-        Label medium = new Label("Medium");
-        medium.Y = 0;
-        difficultyMenuButtons.Add(medium);
-
-        Label hard = new Label("Hard");
-        hard.Y = -50.0;
-        difficultyMenuButtons.Add(hard);
+        Label easy = CreateButton("Easy", 50.0, difficultyMenuButtons);
+        Label medium = CreateButton("Medium", 0.0, difficultyMenuButtons);
+        Label hard = CreateButton("Hard", -50.0, difficultyMenuButtons);
 
         foreach (Label button in difficultyMenuButtons)
         {
             Add(button);
         }
 
-        //Mouse.ListenMovement(1.0, MenuMovement, null, difficultyMenuButtons);
+        Mouse.ListenMovement(1.0, MenuMovement, null, difficultyMenuButtons);
         Mouse.ListenOn(easy, MouseButton.Left, ButtonState.Pressed, CreateStage, null, "easy");
         Mouse.ListenOn(medium, MouseButton.Left, ButtonState.Pressed, CreateStage, null, "medium");
         Mouse.ListenOn(hard, MouseButton.Left, ButtonState.Pressed, CreateStage, null, "hard");
     }
 
 
-    public void CreateStage(string difficulty)
+    public void CreateStage(string selectedDifficulty)
     {
         ClearAll();
 
+        difficulty = selectedDifficulty;
         bool hardMode = false;
         bool finishlineSpawned = false;
         bool gamePassed = false;
@@ -244,7 +235,7 @@ public class autopeli : PhysicsGame
         player = new PhysicsObject(40.0, 80.0);
         player.Shape = Shape.Rectangle;
         player.Image = LoadImage("carYellow3");
-        player.Y = -150.0;
+        player.Position = new Vector(0.0, -250.0);
         player.CanRotate = false;
         player.Restitution = 0.35;
         AddCollisionHandler(player, "debris_group", CollisionWithDebris);
@@ -255,13 +246,22 @@ public class autopeli : PhysicsGame
     }
 
 
-    public void AddBorders()
+    public void CreateBorders()
     {
-        PhysicsObject bottomBorder = Level.CreateBottomBorder();
-        bottomBorder.Restitution = 0.5;
-        bottomBorder.IsVisible = false;
+        bottomBorder = AddBorder(Level.CreateBottomBorder, 0.0, false);
+        topBorder = AddBorder(Level.CreateTopBorder, 0.0, false);
+        leftBorder = AddBorder(Level.CreateLeftBorder, 1.0, true);
+        rightBorder = AddBorder(Level.CreateRightBorder, 1.0, true);
+    }
 
-        AddCollisionHandler(bottomBorder, "debris_group", DebrisAvoided);
+    public PhysicsObject AddBorder(Func<PhysicsObject> location, double restitution, bool isVisible)
+    {
+        PhysicsObject border = location();
+        border.Restitution = restitution;
+        border.IsVisible = isVisible;
+        border.AddCollisionIgnoreGroup(1);
+        Add(border);
+        return border;
     }
 
 
@@ -304,6 +304,7 @@ public class autopeli : PhysicsGame
         debris.IgnoresCollisionResponse = true;
         debris.Tag = "debris_group";
         debris.LifetimeLeft = TimeSpan.FromSeconds(5.0);
+        debris.AddCollisionIgnoreGroup(1);
         objectGroup.Add(debris);
         Add(debris);
         debris.Hit(speed * debris.Mass);
@@ -336,6 +337,7 @@ public class autopeli : PhysicsGame
         fuel.IgnoresCollisionResponse = true;
         fuel.Tag = "fuel_group";
         fuel.LifetimeLeft = TimeSpan.FromSeconds(5.0);
+        fuel.AddCollisionIgnoreGroup(1);
         objectGroup.Add(fuel);
         Add(fuel);
         fuel.Hit(speed * fuel.Mass);
@@ -367,6 +369,7 @@ public class autopeli : PhysicsGame
         repairkit.IgnoresCollisionResponse = true;
         repairkit.Tag = "repairkit_group";
         repairkit.LifetimeLeft = TimeSpan.FromSeconds(5.0);
+        repairkit.AddCollisionIgnoreGroup(1);
         objectGroup.Add(repairkit);
         Add(repairkit);
         repairkit.Hit(speed * repairkit.Mass);
@@ -379,7 +382,7 @@ public class autopeli : PhysicsGame
 
         speed = new Vector(0.0, carSpeed);
 
-        AddBorders();
+        CreateBorders();
         AddDistanceMeter();
         AddFuelMeter();
         AddHullBar();
@@ -442,6 +445,7 @@ public class autopeli : PhysicsGame
             finishline.CanRotate = false;
             finishline.IgnoresCollisionResponse = true;
             finishline.Tag = "finishline_group";
+            finishline.AddCollisionIgnoreGroup(1);
             Add(finishline);
             finishline.Hit(speed * finishline.Mass);
             finishlineSpawned = true;
@@ -546,9 +550,7 @@ public class autopeli : PhysicsGame
 
     public void SetPlayerMovementSpeed(Vector direction)
     {
-        if ((direction.Y > 0 && player.Top > Screen.Bottom) || (direction.Y < 0 && player.Bottom < Screen.Top))
-            player.Velocity += direction;
-            //player.Velocity = player.Velocity.Normalize * -350;
+        player.Velocity += direction;
     }
 
 
@@ -581,6 +583,7 @@ public class autopeli : PhysicsGame
             }
         }
     }
+
 
     public void CollisionWithFuel(PhysicsObject player, PhysicsObject target)
     {
@@ -647,12 +650,6 @@ public class autopeli : PhysicsGame
         {
             GameWin("You made it!");
         }
-    }
-
-
-    public void DebrisAvoided(PhysicsObject bottom, PhysicsObject target)
-    {
-        target.Destroy();
     }
 
 
@@ -793,45 +790,35 @@ public class autopeli : PhysicsGame
     {
         SoundEffect x = LoadSoundEffect(instance);
         x.Play();
-
         endReason.Destroy();
         endTimerDisplay.Destroy();
-
         MediaPlayer.Stop();
 
         endMenuButtons = new List<Label>();
 
-        Label retry = new Label("Retry");
-        retry.Y = 50.0;
-        endMenuButtons.Add(retry);
-
+        Label retry = CreateButton("Retry", 50.0, endMenuButtons);
+        
         if (gamePassed == false)
         {
-            Label changeDifficulty = new Label("Change difficulty");
-            changeDifficulty.Y = 0;
-            endMenuButtons.Add(changeDifficulty);
-            Mouse.ListenOn(changeDifficulty, MouseButton.Left, ButtonState.Pressed, DifficultySelection, null, "Arcade Mode");
+            Label changeDifficulty = CreateButton("Change difficulty", 0, endMenuButtons);
+            Mouse.ListenOn(endMenuButtons[1], MouseButton.Left, ButtonState.Pressed, DifficultySelection, null, "Arcade Mode");
         }
         else if (gamePassed == true)
         {
-            Label hiscores = new Label("Hiscores");
-            hiscores.Y = 0;
-            endMenuButtons.Add(hiscores);
-            Mouse.ListenOn(hiscores, MouseButton.Left, ButtonState.Pressed, Hiscores, null);
+            Label hiscores = CreateButton("Hiscores", 0, endMenuButtons);
+            Mouse.ListenOn(endMenuButtons[1], MouseButton.Left, ButtonState.Pressed, Hiscores, null);
         }
 
-        Label quit = new Label("Quit");
-        quit.Y = -50.0;
-        endMenuButtons.Add(quit);
+        Label mainMenu = CreateButton("MainMenu", -50.0, endMenuButtons);
 
         foreach (Label button in endMenuButtons)
         {
             Add(button);
         }
 
-        //Mouse.ListenMovement(1.0, MenuMovement, null, endMenuButtons);
-        //Mouse.ListenOn(retry, MouseButton.Left, ButtonState.Pressed, CreateStage, null, ?????);
-        Mouse.ListenOn(quit, MouseButton.Left, ButtonState.Pressed, MainMenu, null);
+        Mouse.ListenMovement(1.0, MenuMovement, null, endMenuButtons);
+        Mouse.ListenOn(endMenuButtons[0], MouseButton.Left, ButtonState.Pressed, CreateStage, null, difficulty);
+        Mouse.ListenOn(endMenuButtons[2], MouseButton.Left, ButtonState.Pressed, MainMenu, null);
     }
 
 
@@ -865,11 +852,12 @@ public class autopeli : PhysicsGame
     }
 
 
-    public Label CreateButton(string buttonText, double buttonY)
+    public Label CreateButton(string buttonText, double buttonY, List<Label> buttonList)
     {
         Label button = new Label(buttonText);
         button.Y = buttonY;
-        mainMenuButtons.Add(button);
+        button.TextColor = Color.White;
+        buttonList.Add(button);
         return button;
     }
 
