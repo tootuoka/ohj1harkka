@@ -47,12 +47,10 @@ public class autopeli : PhysicsGame
     List<GameObject> carList;
     List<Label> carNameList;
 
-    List<Label> carMobilityList;
-    List<Label> carDurabilityList;
-    List<Label> carConsumptionList;
-    List<Label> carCapacityList;
+    Label[][] propertiesOfAllCars;
 
     List<GameObject[][]> allActiveStars;
+    List<GameObject[][]> allPassiveStars;
 
     List <PhysicsObject> objectGroup;
 
@@ -1055,10 +1053,10 @@ public class autopeli : PhysicsGame
 
     public void LockedMessage()
     {
-        Label lockedContent = CreateLabel("Locked", Color.AshGray, Mouse.PositionOnScreen.X, Mouse.PositionOnScreen.Y, 0.7);
+        Label lockedContent = CreateLabel("Locked", Color.White, Mouse.PositionOnScreen.X, Mouse.PositionOnScreen.Y, 0.8);
         Add(lockedContent);
 
-        Timer lockedHangTime = new Timer(1);
+        Timer lockedHangTime = new Timer(0.3);
         lockedHangTime.Timeout += delegate { lockedContent.Destroy(); };
         lockedHangTime.Start(1);
 
@@ -1075,28 +1073,25 @@ public class autopeli : PhysicsGame
     {
         carList = new List<GameObject>();
         carNameList = new List<Label>();
-
-        carMobilityList = new List<Label>();
-        carDurabilityList = new List<Label>();
-        carConsumptionList = new List<Label>();
-        carCapacityList = new List<Label>();
+        string[] propertyAbbreviations = new string[4] { "MOB:", "DUR:", "CON:", "CAP:" };
+        propertiesOfAllCars = new Label[4][] { new Label[5], new Label[5], new Label[5], new Label[5] };
 
         CreateCarAvatar(-300, "car1");
-        CreateCarName(-300, 190, "Basic Car");
+        CreateCarName(-300, 150, "Basic Car");
 
         CreateCarAvatar(-150, "car2");
-        CreateCarName(-150, 190, "Sports Car");
+        CreateCarName(-150, 150, "Sports Car");
 
         CreateCarAvatar(0, "car3");
-        CreateCarName(0, 190, "Power Car");
+        CreateCarName(0, 150, "Power Car");
 
         if (gameFullyUnlocked)
         {
             CreateCarAvatar(150, "car4");
-            CreateCarName(150, 190, "Heavy Car");
+            CreateCarName(150, 150, "Heavy Car");
 
             CreateCarAvatar(300, "car5");
-            CreateCarName(300, 190, "Super Car");
+            CreateCarName(300, 150, "Super Car");
         }
         else
         {
@@ -1104,35 +1099,19 @@ public class autopeli : PhysicsGame
             CreateCarAvatar(300, "car5Locked");
         }
 
-        for (int i = 1, j = -330, h = -50; i < 6; i++)
+        for (int i = 0, x = -330; i < 5; i++, x += 150)
         {
-            CreateCarProperty(j, h, "MOB:", carMobilityList);
-            j += 150;
-        }
-
-        for (int i = 1, j = -330, h = -70; i < 6; i++)
-        {
-            CreateCarProperty(j, h, "DUR:", carDurabilityList);
-            j += 150;
-        }
-
-        for (int i = 1, j = -330, h = -90; i < 6; i++)
-        {
-            CreateCarProperty(j, h, "CON:", carConsumptionList);
-            j += 150;
-        }
-
-        for (int i = 1, j = -330, h = -110; i < 6; i++)
-        {
-            CreateCarProperty(j, h, "CAP:", carCapacityList);
-            j += 150;
+            for (int j = 0, y = -90; j < 4; j++, y -= 20)
+            {
+                propertiesOfAllCars[j][i] = CreateCarProperty(x, y, propertyAbbreviations[j], propertiesOfAllCars[j]);
+            }
         }
     }
 
 
     private void AddPassiveStars()
     {
-        List<GameObject[][]> allPassiveStars= new List<GameObject[][]> { new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+        allPassiveStars= new List<GameObject[][]> { new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
                                                                          new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
                                                                          new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
                                                                          new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
@@ -1140,7 +1119,7 @@ public class autopeli : PhysicsGame
 
         for (int i = 0, x = -330; i < carList.Count; i++, x += 150)
         {
-            for (int j = 0, y = -50; j < 4; j++, y -= 20, x -= 12 * 5)
+            for (int j = 0, y = -90; j < 4; j++, y -= 20, x -= 12 * 5)
             {
                 for (int k = 0; k < allPassiveStars[i][j].Length; k++, x += 12)
                 {
@@ -1161,11 +1140,11 @@ public class autopeli : PhysicsGame
 
         for (int i = 0, x = -330; i < carList.Count; i++, x += 150)
         {
-            for (int j = 0, y = -50; j < 4; j++, y -= 20, x -= 12 * allActiveStars[i][j - 1].Length)
+            for (int j = 0, y = -90; j < 4; j++, y -= 20, x -= 12 * allActiveStars[i][j - 1].Length)
             {
                 for (int k = 0; k < allActiveStars[i][j].Length; k++, x += 12)
                 {
-                    allActiveStars[i][j][k] = CreateStar("star_active", x, y, 9);
+                    allActiveStars[i][j][k] = CreateStar("star_active", x, y, 12);
                 }
             }
         }
@@ -1175,7 +1154,7 @@ public class autopeli : PhysicsGame
     private void CreateCarAvatar(double x, string carImage)
     {
         GameObject car = new GameObject(75.0, 150.0);
-        car.Position = new Vector(x, 70.0);
+        car.Position = new Vector(x, 30.0);
         car.Image = LoadImage(carImage);
         carList.Add(car);
         Add(car);
@@ -1190,11 +1169,11 @@ public class autopeli : PhysicsGame
     }
 
 
-    private void CreateCarProperty(double x, double y, string property, List<Label> propertyList)
+    private Label CreateCarProperty(double x, double y, string property, Label[] propertyList)
     {
         Label carProperty = CreateLabel(property, Color.Black, x, y, 0.65, false);
-        propertyList.Add(carProperty);
         Add(carProperty);
+        return carProperty;
     }
 
 
@@ -1219,13 +1198,10 @@ public class autopeli : PhysicsGame
                 carList[i].Height = 170.0;
 
                 carNameList[i].TextScale = new Vector(1.0, 1.0);
-                carNameList[i].Y = 200;
+                carNameList[i].Y = 160;
                 carNameList[i].TextColor = Color.Gold;
 
-                carMobilityList[i].IsVisible = true;
-                carDurabilityList[i].IsVisible = true;
-                carConsumptionList[i].IsVisible = true;
-                carCapacityList[i].IsVisible = true;
+                for (int j = 0; j < 5; j++) propertiesOfAllCars[j][i].IsVisible = true;
 
                 ActivateStars(carList, i);
             }
@@ -1235,13 +1211,10 @@ public class autopeli : PhysicsGame
                 carList[i].Height = 150.0;
 
                 carNameList[i].TextScale = new Vector(0.8, 0.8);
-                carNameList[i].Y = 190;
+                carNameList[i].Y = 150;
                 carNameList[i].TextColor = Color.White;
 
-                carMobilityList[i].IsVisible = false;
-                carDurabilityList[i].IsVisible = false;
-                carConsumptionList[i].IsVisible = false;
-                carCapacityList[i].IsVisible = false;
+                for (int j = 0; j < 5; j++) propertiesOfAllCars[j][i].IsVisible = false;
 
                 ActivateStars(carList, i);
             }
@@ -1257,13 +1230,10 @@ public class autopeli : PhysicsGame
                     carList[i].Height = 170.0;
 
                     carNameList[i].TextScale = new Vector(1.0, 1.0);
-                    carNameList[i].Y = 200;
+                    carNameList[i].Y = 160;
                     carNameList[i].TextColor = Color.Gold;
 
-                    carMobilityList[i].IsVisible = true;
-                    carDurabilityList[i].IsVisible = true;
-                    carConsumptionList[i].IsVisible = true;
-                    carCapacityList[i].IsVisible = true;
+                    for (int j = 0; j < 5; j++) propertiesOfAllCars[j][i].IsVisible = true;
 
                     ActivateStars(carList, i);
 }
@@ -1273,13 +1243,10 @@ public class autopeli : PhysicsGame
                     carList[i].Height = 150.0;
 
                     carNameList[i].TextScale = new Vector(0.8, 0.8);
-                    carNameList[i].Y = 190;
+                    carNameList[i].Y = 150;
                     carNameList[i].TextColor = Color.White;
 
-                    carMobilityList[i].IsVisible = false;
-                    carDurabilityList[i].IsVisible = false;
-                    carConsumptionList[i].IsVisible = false;
-                    carCapacityList[i].IsVisible = false;
+                    for (int j = 0; j < 5; j++) propertiesOfAllCars[j][i].IsVisible = false;
 
                     ActivateStars(carList, i);
                 }
@@ -1303,6 +1270,11 @@ public class autopeli : PhysicsGame
     {
         if (Mouse.IsCursorOn(carList[i]))
         {
+            foreach (GameObject[] carPropertyPassiveStars in allPassiveStars[i])
+            {
+                foreach (GameObject passiveStar in carPropertyPassiveStars) passiveStar.IsVisible = true;
+            }
+
             foreach (GameObject[] carPropertyActiveStars in allActiveStars[i])
             {
                 foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
@@ -1310,6 +1282,11 @@ public class autopeli : PhysicsGame
         }
         else
         {
+            foreach (GameObject[] carPropertyPassiveStars in allPassiveStars[i])
+            {
+                foreach (GameObject passiveStar in carPropertyPassiveStars) passiveStar.IsVisible = false;
+            }
+
             foreach (GameObject[] carPropertyActiveStars in allActiveStars[i])
             {
                 foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
