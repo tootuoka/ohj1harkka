@@ -28,7 +28,7 @@ public class autopeli : PhysicsGame
     bool finishlineSpawned;
     bool gameIsOn;
     bool gamePassed;
-    bool gameFullyUnlocked = true;
+    bool gameFullyUnlocked = false;
     bool firstCompletion = true;
     double fuelConsumptionMultiplier;
     private bool descriptionExists = false;
@@ -274,8 +274,12 @@ public class autopeli : PhysicsGame
         Mouse.ListenOn(carList[0], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Basic");
         Mouse.ListenOn(carList[1], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Sports");
         Mouse.ListenOn(carList[2], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Power");
-        Mouse.ListenOn(carList[3], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Heavy");
-        Mouse.ListenOn(carList[4], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Super");
+
+        if (gameFullyUnlocked)
+        {
+            Mouse.ListenOn(carList[3], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Heavy");
+            Mouse.ListenOn(carList[4], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Super");
+        }
     }
 
 
