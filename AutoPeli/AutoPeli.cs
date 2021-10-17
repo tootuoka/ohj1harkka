@@ -267,7 +267,7 @@ public class autopeli : PhysicsGame
 
         CreateCarSelectionItems();
         AddPassiveStars();
-        //AddActiveStars();
+        AddActiveStars();
 
         Mouse.ListenMovement(0.5, CarMenuMovement, null, descriptions);
 
@@ -1120,7 +1120,7 @@ public class autopeli : PhysicsGame
         {
             for (int j = 0, y = -50; j < 4; j++, y -= 20, x -= 12 * 5)
             {
-                for (int k = 0; k < 5; k++, x += 12)
+                for (int k = 0; k < allPassiveStars[i][j].Length; k++, x += 12)
                 {
                     allPassiveStars[i][j][k] = CreateStar("star_passive", x, y, 9);
                 }
@@ -1139,12 +1139,11 @@ public class autopeli : PhysicsGame
 
         for (int i = 0, x = -330; i < carList.Count; i++, x += 150)
         {
-            for (int j = 0, y = -50; j < 4; j++, y -= 20, x -= 12 * 5)
+            for (int j = 0, y = -50; j < 4; j++, y -= 20, x -= 12 * allActiveStars[i][j - 1].Length)
             {
-                foreach (GameObject activeStar in allActiveStars[i][j])
+                for (int k = 0; k < allActiveStars[i][j].Length; k++, x += 12)
                 {
-                    activeStar = CreateStar("star_active", x, y, 12);
-                    x += 12;
+                    allActiveStars[i][j][k] = CreateStar("star_active", x, y, 9);
                 }
             }
         }
@@ -1206,27 +1205,7 @@ public class autopeli : PhysicsGame
                 carConsumptionList[i].IsVisible = true;
                 carCapacityList[i].IsVisible = true;
 
-                //switch (i)
-                //{
-                //    case 0:
-                //        foreach (GameObject[] carPropertyActiveStars in allActiveStars[0])
-                //        {
-                //            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
-                //        }
-                //        break;
-                //    case 1:
-                //        foreach (GameObject[] carPropertyActiveStars in allActiveStars[1])
-                //        {
-                //            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
-                //        }
-                //        break;
-                //    case 2:
-                //        foreach (GameObject[] carPropertyActiveStars in allActiveStars[2])
-                //        {
-                //            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
-                //        }
-                //        break;
-                //}
+                ActivateStars(carList, i);
             }
             else
             {
@@ -1242,28 +1221,7 @@ public class autopeli : PhysicsGame
                 carConsumptionList[i].IsVisible = false;
                 carCapacityList[i].IsVisible = false;
 
-                //switch (i)
-                //{
-                //    case 0:
-                //        foreach (GameObject[] carPropertyActiveStars in allActiveStars[0])
-                //        {
-                //            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
-                //        }
-                //        break;
-                //    case 1:
-                //        foreach (GameObject[] carPropertyActiveStars in allActiveStars[1])
-                //        {
-                //            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
-                //        }
-
-                //        break;
-                //    case 2:
-                //        foreach (GameObject[] carPropertyActiveStars in allActiveStars[2])
-                //        {
-                //            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
-                //        }
-                //        break;
-                //}
+                ActivateStars(carList, i);
             }
         }
 
@@ -1285,22 +1243,8 @@ public class autopeli : PhysicsGame
                     carConsumptionList[i].IsVisible = true;
                     carCapacityList[i].IsVisible = true;
 
-                    //switch (i)
-                    //{
-                    //    case 3:
-                    //        foreach (GameObject[] carPropertyActiveStars in allActiveStars[3])
-                    //        {
-                    //            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
-                    //        }
-                    //        break;
-                    //    case 4:
-                    //        foreach (GameObject[] carPropertyActiveStars in allActiveStars[4])
-                    //        {
-                    //            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
-                    //        }
-                    //        break;
-                    //}
-                }
+                    ActivateStars(carList, i);
+}
                 else
                 {
                     carList[i].Width = 75.0;
@@ -1315,23 +1259,10 @@ public class autopeli : PhysicsGame
                     carConsumptionList[i].IsVisible = false;
                     carCapacityList[i].IsVisible = false;
 
-                    //switch (i)
-                    //{
-                    //    case 3:
-                    //        foreach (GameObject[] carPropertyActiveStars in allActiveStars[3])
-                    //        {
-                    //            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
-                    //        }
-                    //        break;
-                    //    case 4:
-                    //        foreach (GameObject[] carPropertyActiveStars in allActiveStars[4])
-                    //        {
-                    //            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
-                    //        }
-                    //        break;
-                    //}    
+                    ActivateStars(carList, i);
                 }
             }
+
             if (Mouse.IsCursorOn(carInfo))
             {
                 foreach (Label description in descriptions) description.IsVisible = true;
@@ -1344,6 +1275,99 @@ public class autopeli : PhysicsGame
             }
         }
     }
+
+
+    private void ActivateStars(List<GameObject> carList, int i)
+    {
+        if (Mouse.IsCursorOn(carList[i]))
+        {
+            switch (i)
+            {
+                case 0:
+                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[0])
+                    {
+                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
+                    }
+                    break;
+                case 1:
+                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[1])
+                    {
+                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
+                    }
+                    break;
+                case 2:
+                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[2])
+                    {
+                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
+                    }
+                    break;
+            }
+        }
+        else
+        {
+            switch (i)
+            {
+                case 0:
+                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[0])
+                    {
+                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
+                    }
+                    break;
+                case 1:
+                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[1])
+                    {
+                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
+                    }
+                    break;
+                case 2:
+                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[2])
+                    {
+                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
+                    }
+                    break;
+            }
+        }
+
+        if (gameFullyUnlocked)
+        {
+            switch (i)
+            {
+                case 3:
+                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[3])
+                    {
+                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
+                    }
+                    break;
+                case 4:
+                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[4])
+                    {
+                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
+                    }
+                    break;
+            }
+
+        }
+        else
+        {
+            switch (i)
+            {
+                case 3:
+                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[3])
+                    {
+                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
+                    }
+                    break;
+                case 4:
+                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[4])
+                    {
+                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
+                    }
+                    break;
+            }
+        }
+    }
+
+
 
 
     public void AddZones()
