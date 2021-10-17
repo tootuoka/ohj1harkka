@@ -1074,7 +1074,7 @@ public class autopeli : PhysicsGame
         carList = new List<GameObject>();
         carNameList = new List<Label>();
         string[] propertyAbbreviations = new string[4] { "MOB:", "DUR:", "CON:", "CAP:" };
-        propertiesOfAllCars = new Label[4][] { new Label[5], new Label[5], new Label[5], new Label[5] };
+        propertiesOfAllCars = new Label[5][] { new Label[4], new Label[4], new Label[4], new Label[4], new Label[4] };
 
         CreateCarAvatar(-300, "car1");
         CreateCarName(-300, 150, "Basic Car");
@@ -1103,7 +1103,7 @@ public class autopeli : PhysicsGame
         {
             for (int j = 0, y = -90; j < 4; j++, y -= 20)
             {
-                propertiesOfAllCars[j][i] = CreateCarProperty(x, y, propertyAbbreviations[j], propertiesOfAllCars[j]);
+                propertiesOfAllCars[i][j] = CreateCarProperty(x, y, propertyAbbreviations[j], propertiesOfAllCars[i]);
             }
         }
     }
