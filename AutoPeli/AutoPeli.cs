@@ -137,6 +137,8 @@ public class autopeli : PhysicsGame
             mainMenuButtons[1].TextColor = Color.Gray;
             mainMenuButtons[2].TextColor = Color.Gray;
             Mouse.ListenOn(mainMenuButtons[0], MouseButton.Left, ButtonState.Pressed, DifficultyMenu, null);
+            Mouse.ListenOn(mainMenuButtons[1], MouseButton.Left, ButtonState.Pressed, LockedMessage, null);
+            Mouse.ListenOn(mainMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LockedMessage, null);
             Mouse.ListenOn(mainMenuButtons[3], MouseButton.Left, ButtonState.Pressed, ConfirmExit, null);
         }
     }
@@ -274,8 +276,12 @@ public class autopeli : PhysicsGame
         Mouse.ListenOn(carList[0], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Basic");
         Mouse.ListenOn(carList[1], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Sports");
         Mouse.ListenOn(carList[2], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Power");
-
-        if (gameFullyUnlocked)
+        if (!gameFullyUnlocked)
+        {
+            Mouse.ListenOn(carList[3], MouseButton.Left, ButtonState.Pressed, LockedMessage, null);
+            Mouse.ListenOn(carList[4], MouseButton.Left, ButtonState.Pressed, LockedMessage, null);
+        }
+        else
         {
             Mouse.ListenOn(carList[3], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Heavy");
             Mouse.ListenOn(carList[4], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Super");
@@ -1047,6 +1053,18 @@ public class autopeli : PhysicsGame
     // DataStorage.Save<ScoreList>(hiscores, "hiscores.xml");
 
 
+    public void LockedMessage()
+    {
+        Label lockedContent = CreateLabel("Locked", Color.AshGray, Mouse.PositionOnScreen.X, Mouse.PositionOnScreen.Y, 0.7);
+        Add(lockedContent);
+
+        Timer lockedHangTime = new Timer(1);
+        lockedHangTime.Timeout += delegate { lockedContent.Destroy(); };
+        lockedHangTime.Start(1);
+
+        // TODO: Error sound to locked message.
+    }
+
 
     //---------------------------------------------------------
     //---------------------------------------------------------
@@ -1285,91 +1303,16 @@ public class autopeli : PhysicsGame
     {
         if (Mouse.IsCursorOn(carList[i]))
         {
-            switch (i)
+            foreach (GameObject[] carPropertyActiveStars in allActiveStars[i])
             {
-                case 0:
-                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[0])
-                    {
-                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
-                    }
-                    break;
-                case 1:
-                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[1])
-                    {
-                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
-                    }
-                    break;
-                case 2:
-                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[2])
-                    {
-                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
-                    }
-                    break;
+                foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
             }
         }
         else
         {
-            switch (i)
+            foreach (GameObject[] carPropertyActiveStars in allActiveStars[i])
             {
-                case 0:
-                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[0])
-                    {
-                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
-                    }
-                    break;
-                case 1:
-                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[1])
-                    {
-                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
-                    }
-                    break;
-                case 2:
-                    foreach (GameObject[] carPropertyActiveStars in allActiveStars[2])
-                    {
-                        foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
-                    }
-                    break;
-            }
-        }
-
-        if (gameFullyUnlocked)
-        {
-            if (Mouse.IsCursorOn(carList[i]))
-            {
-                switch (i)
-                {
-                    case 3:
-                        foreach (GameObject[] carPropertyActiveStars in allActiveStars[3])
-                        {
-                            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
-                        }
-                        break;
-                    case 4:
-                        foreach (GameObject[] carPropertyActiveStars in allActiveStars[4])
-                        {
-                            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
-                        }
-                        break;
-                }
-
-            }
-            else
-            {
-                switch (i)
-                {
-                    case 3:
-                        foreach (GameObject[] carPropertyActiveStars in allActiveStars[3])
-                        {
-                            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
-                        }
-                        break;
-                    case 4:
-                        foreach (GameObject[] carPropertyActiveStars in allActiveStars[4])
-                        {
-                            foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
-                        }
-                        break;
-                }
+                foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
             }
         }
     }
