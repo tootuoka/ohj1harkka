@@ -6,14 +6,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-public class CarAvatar : GameObject
+public class Car : PhysicsObject
 {
-    public CarAvatar(double width, double height, int mobility = 1, int durability = 1, int consumption = 1, int capacity = 1) : base(width, height)
+    public Car(double width, double height) : base(width, height)
     {
-        int Mobility = mobility;
-        int Durability = durability;
-        int Consumption = consumption;
-        int Capacity = capacity;
+
     }
 }
 
@@ -50,7 +47,7 @@ public class autopeli : PhysicsGame
     Label[][] propertiesOfAllCars;
 
     List<GameObject[][]> allStars;
-    List<GameObject[][]> allActiveStars;
+    List<int[][]> allActiveStars;
 
     List <PhysicsObject> objectGroup;
 
@@ -268,7 +265,7 @@ public class autopeli : PhysicsGame
         CreateCarSelectionItems();
         AddStars();
 
-        Mouse.ListenMovement(0.5, CarMenuMovement, null, descriptions);
+        Mouse.ListenMovement(1, CarMenuMovement, null, descriptions);
 
         Mouse.ListenOn(carList[0], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Basic");
         Mouse.ListenOn(carList[1], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Sports");
@@ -366,7 +363,7 @@ public class autopeli : PhysicsGame
                 playerMovements = new Vector[4] { new Vector(0, 250), new Vector(0, -250), new Vector(-250, 0), new Vector(250, 0) };
                 hullIntegrity = new IntMeter(3, 0, 3);
                 fuelConsumptionMultiplier = 1.3;
-                fuelRemaining = new DoubleMeter(110.0, 0.0, 100.0);
+                fuelRemaining = new DoubleMeter(110.0, 0.0, 110.0);
                 carConditions = new List<Image>() { LoadImage("car1_3"), LoadImage("car1_2"), LoadImage("car1_1"), LoadImage("car1") };
                 break;
             case "car_Sports":
@@ -1116,11 +1113,11 @@ public class autopeli : PhysicsGame
                                              new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
                                              new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] } };
 
-        allActiveStars = new List<GameObject[][]>() { new GameObject[4][] { new GameObject[3], new GameObject[3], new GameObject[4], new GameObject[3] },
-                                                      new GameObject[4][] { new GameObject[4], new GameObject[2], new GameObject[5], new GameObject[1] },
-                                                      new GameObject[4][] { new GameObject[2], new GameObject[4], new GameObject[1], new GameObject[4] },
-                                                      new GameObject[4][] { new GameObject[1], new GameObject[5], new GameObject[2], new GameObject[5] },
-                                                      new GameObject[4][] { new GameObject[5], new GameObject[1], new GameObject[3], new GameObject[2] } };
+        allActiveStars = new List<int[][]>() { new int[4][] { new int[3], new int[3], new int[4], new int[3] },
+                                               new int[4][] { new int[4], new int[2], new int[5], new int[1] },
+                                               new int[4][] { new int[2], new int[4], new int[1], new int[4] },
+                                               new int[4][] { new int[1], new int[5], new int[2], new int[5] },
+                                               new int[4][] { new int[5], new int[1], new int[3], new int[2] } };
 
         for (int i = 0, x = -330; i < carList.Count; i++, x += 150)
         {
@@ -1227,7 +1224,7 @@ public class autopeli : PhysicsGame
         }
     }
 
-        private void ActivateStars(List<GameObject> carList, int i)
+    private void ActivateStars(List<GameObject> carList, int i)
     {
         if (Mouse.IsCursorOn(carList[i]))
         {
@@ -1264,8 +1261,6 @@ public class autopeli : PhysicsGame
             }
         }
     }
-
-
 
 
     public void AddZones()
