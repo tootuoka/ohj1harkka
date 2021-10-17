@@ -1112,10 +1112,10 @@ public class autopeli : PhysicsGame
     private void AddPassiveStars()
     {
         allPassiveStars= new List<GameObject[][]> { new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                                                         new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                                                         new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                                                         new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                                                         new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] } };
+                                                    new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                                    new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                                    new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                                    new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] } };
 
         for (int i = 0, x = -330; i < carList.Count; i++, x += 150)
         {
@@ -1190,84 +1190,60 @@ public class autopeli : PhysicsGame
 
     private void CarMenuMovement(Label[] descriptions)
     {
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < carNameList.Count; i++)
         {
             if (Mouse.IsCursorOn(carList[i]))
             {
-                carList[i].Width = 85.0;
-                carList[i].Height = 170.0;
-
-                carNameList[i].TextScale = new Vector(1.0, 1.0);
-                carNameList[i].Y = 160;
-                carNameList[i].TextColor = Color.Gold;
-
+                CarLabelChange(carList, i);
                 foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = true;
-
                 ActivateStars(carList, i);
             }
             else
             {
-                carList[i].Width = 75.0;
-                carList[i].Height = 150.0;
-
-                carNameList[i].TextScale = new Vector(0.8, 0.8);
-                carNameList[i].Y = 150;
-                carNameList[i].TextColor = Color.White;
-
                 foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = false;
-
+                CarLabelChange(carList, i);
                 ActivateStars(carList, i);
             }
         }
 
-        if (gameFullyUnlocked)
+        if (Mouse.IsCursorOn(carInfo))
         {
-            for (int i = 3; i < 5; i++)
-            {
-                if (Mouse.IsCursorOn(carList[i]))
-                {
-                    carList[i].Width = 85.0;
-                    carList[i].Height = 170.0;
-
-                    carNameList[i].TextScale = new Vector(1.0, 1.0);
-                    carNameList[i].Y = 160;
-                    carNameList[i].TextColor = Color.Gold;
-
-                    foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = true;
-
-                    ActivateStars(carList, i);
-}
-                else
-                {
-                    carList[i].Width = 75.0;
-                    carList[i].Height = 150.0;
-
-                    carNameList[i].TextScale = new Vector(0.8, 0.8);
-                    carNameList[i].Y = 150;
-                    carNameList[i].TextColor = Color.White;
-
-                    foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = false;
-
-
-                    ActivateStars(carList, i);
-                }
-            }
-
-            if (Mouse.IsCursorOn(carInfo))
-            {
-                foreach (Label description in descriptions) description.IsVisible = true;
-                carInfo.IsVisible = false;
-            }
-            else
-            {
-                foreach (Label description in descriptions) description.IsVisible = false;
-                carInfo.IsVisible = true;
-            }
+            foreach (Label description in descriptions) description.IsVisible = true;
+            carInfo.IsVisible = false;
+        }
+        else
+        {
+            foreach (Label description in descriptions) description.IsVisible = false;
+            carInfo.IsVisible = true;
         }
     }
 
 
-    private void ActivateStars(List<GameObject> carList, int i)
+    private void CarLabelChange(List<GameObject> carList, int i)
+    {
+        //true settings
+        if (Mouse.IsCursorOn(carList[i]))
+        {
+            carList[i].Width = 85.0;
+            carList[i].Height = 170.0;
+
+            carNameList[i].TextScale = new Vector(1.0, 1.0);
+            carNameList[i].Y = 160;
+            carNameList[i].TextColor = Color.Gold;
+        }
+        else
+        {
+            //false settings
+            carList[i].Width = 75.0;
+            carList[i].Height = 150.0;
+
+            carNameList[i].TextScale = new Vector(0.8, 0.8);
+            carNameList[i].Y = 150;
+            carNameList[i].TextColor = Color.White;
+        }
+    }
+
+        private void ActivateStars(List<GameObject> carList, int i)
     {
         if (Mouse.IsCursorOn(carList[i]))
         {
