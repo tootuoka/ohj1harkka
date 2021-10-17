@@ -49,8 +49,8 @@ public class autopeli : PhysicsGame
 
     Label[][] propertiesOfAllCars;
 
+    List<GameObject[][]> allStars;
     List<GameObject[][]> allActiveStars;
-    List<GameObject[][]> allPassiveStars;
 
     List <PhysicsObject> objectGroup;
 
@@ -267,7 +267,6 @@ public class autopeli : PhysicsGame
 
         CreateCarSelectionItems();
         AddPassiveStars();
-        AddActiveStars();
 
         Mouse.ListenMovement(0.5, CarMenuMovement, null, descriptions);
 
@@ -1111,43 +1110,28 @@ public class autopeli : PhysicsGame
 
     private void AddPassiveStars()
     {
-        allPassiveStars= new List<GameObject[][]> { new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                                    new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                                    new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                                    new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                                    new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] } };
+        allStars= new List<GameObject[][]> { new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                             new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                             new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                             new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                             new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] } };
 
-        for (int i = 0, x = -330; i < carList.Count; i++, x += 150)
-        {
-            for (int j = 0, y = -90; j < 4; j++, y -= 20, x -= 12 * 5)
-            {
-                for (int k = 0; k < allPassiveStars[i][j].Length; k++, x += 12)
-                {
-                    allPassiveStars[i][j][k] = CreateStar("star_passive", x, y, 9);
-                }
-            }
-        }
-    }
-
-
-    private void AddActiveStars()
-    {
         allActiveStars = new List<GameObject[][]>() { new GameObject[4][] { new GameObject[3], new GameObject[3], new GameObject[4], new GameObject[3] },
                                                       new GameObject[4][] { new GameObject[4], new GameObject[2], new GameObject[5], new GameObject[1] },
                                                       new GameObject[4][] { new GameObject[2], new GameObject[4], new GameObject[1], new GameObject[4] },
                                                       new GameObject[4][] { new GameObject[1], new GameObject[5], new GameObject[2], new GameObject[5] },
                                                       new GameObject[4][] { new GameObject[5], new GameObject[1], new GameObject[3], new GameObject[2] } };
 
-        //for (int i = 0, x = -330; i < carList.Count; i++, x += 150)
-        //{
-        //    for (int j = 0, y = -90; j < 4; j++, y -= 20, x -= 12 * allActiveStars[i][j - 1].Length)
-        //    {
-        //        for (int k = 0; k < allActiveStars[i][j].Length; k++, x += 12)
-        //        {
-        //            allActiveStars[i][j][k] = CreateStar("star_active", x, y, 12);
-        //        }
-        //    }
-        //}
+        for (int i = 0, x = -330; i < carList.Count; i++, x += 150)
+        {
+            for (int j = 0, y = -90; j < 4; j++, y -= 20, x -= 12 * 5)
+            {
+                for (int k = 0; k < allStars[i][j].Length; k++, x += 12)
+                {
+                    allStars[i][j][k] = CreateStar("star_passive", x, y, 9);
+                }
+            }
+        }
     }
 
 
@@ -1251,21 +1235,16 @@ public class autopeli : PhysicsGame
             {
                 for (int k = 0; k < allActiveStars[i][j].Length; k++)
                 {
-                    allPassiveStars[i][j][k].Image = LoadImage("star_active");
-                    allPassiveStars[i][j][k].Width = 12;
-                    allPassiveStars[i][j][k].Height = 12;
+                    allStars[i][j][k].Image = LoadImage("star_active");
+                    allStars[i][j][k].Width = 12;
+                    allStars[i][j][k].Height = 12;
                 }
             }
 
-            foreach (GameObject[] carPropertyPassiveStars in allPassiveStars[i])
+            foreach (GameObject[] carPropertyStars in allStars[i])
             {
-                foreach (GameObject passiveStar in carPropertyPassiveStars) passiveStar.IsVisible = true;
+                foreach (GameObject star in carPropertyStars) star.IsVisible = true;
             }
-
-            //foreach (GameObject[] carPropertyActiveStars in allActiveStars[i])
-            //{
-            //    foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = true;
-            //}
         }
         else
         {
@@ -1273,21 +1252,16 @@ public class autopeli : PhysicsGame
             {
                 for (int k = 0; k < allActiveStars[i][j].Length; k++)
                 {
-                    allPassiveStars[i][j][k].Image = LoadImage("star_passive");
-                    allPassiveStars[i][j][k].Width = 9;
-                    allPassiveStars[i][j][k].Height = 9;
+                    allStars[i][j][k].Image = LoadImage("star_passive");
+                    allStars[i][j][k].Width = 9;
+                    allStars[i][j][k].Height = 9;
                 }
             }
 
-            foreach (GameObject[] carPropertyPassiveStars in allPassiveStars[i])
+            foreach (GameObject[] carPropertyStars in allStars[i])
             {
-                foreach (GameObject passiveStar in carPropertyPassiveStars) passiveStar.IsVisible = false;
+                foreach (GameObject star in carPropertyStars) star.IsVisible = false;
             }
-
-            //foreach (GameObject[] carPropertyActiveStars in allActiveStars[i])
-            //{
-            //    foreach (GameObject activeStar in carPropertyActiveStars) activeStar.IsVisible = false;
-            //}
         }
     }
 
