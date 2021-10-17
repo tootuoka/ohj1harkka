@@ -1201,7 +1201,7 @@ public class autopeli : PhysicsGame
                 carNameList[i].Y = 160;
                 carNameList[i].TextColor = Color.Gold;
 
-                for (int j = 0; j < 5; j++) propertiesOfAllCars[j][i].IsVisible = true;
+                foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = true;
 
                 ActivateStars(carList, i);
             }
@@ -1214,7 +1214,7 @@ public class autopeli : PhysicsGame
                 carNameList[i].Y = 150;
                 carNameList[i].TextColor = Color.White;
 
-                for (int j = 0; j < 5; j++) propertiesOfAllCars[j][i].IsVisible = false;
+                foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = false;
 
                 ActivateStars(carList, i);
             }
@@ -1233,7 +1233,7 @@ public class autopeli : PhysicsGame
                     carNameList[i].Y = 160;
                     carNameList[i].TextColor = Color.Gold;
 
-                    for (int j = 0; j < 5; j++) propertiesOfAllCars[j][i].IsVisible = true;
+                    foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = true;
 
                     ActivateStars(carList, i);
 }
@@ -1246,7 +1246,8 @@ public class autopeli : PhysicsGame
                     carNameList[i].Y = 150;
                     carNameList[i].TextColor = Color.White;
 
-                    for (int j = 0; j < 5; j++) propertiesOfAllCars[j][i].IsVisible = false;
+                    foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = false;
+
 
                     ActivateStars(carList, i);
                 }
