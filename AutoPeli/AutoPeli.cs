@@ -266,7 +266,7 @@ public class autopeli : PhysicsGame
         foreach (Label description in descriptions) Add(description);
 
         CreateCarSelectionItems();
-        AddPassiveStars();
+        AddStars();
 
         Mouse.ListenMovement(0.5, CarMenuMovement, null, descriptions);
 
@@ -1108,7 +1108,7 @@ public class autopeli : PhysicsGame
     }
 
 
-    private void AddPassiveStars()
+    private void AddStars()
     {
         allStars= new List<GameObject[][]> { new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
                                              new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
