@@ -172,10 +172,10 @@
       <None Update="Content\road.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="Content\star.png">
+      <None Update="Content\star_active.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="Content\starEmpty.png">
+      <None Update="Content\star_passive.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="Content\win.wav">
