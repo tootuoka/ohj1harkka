@@ -53,13 +53,13 @@ public class autopeli : PhysicsGame
     private string car;
     private string difficulty;
     private string playerName;
+    private double durabilityMultiplier;
+    private double consumptionMultiplier;
     private bool finishlineSpawned;
     private bool gameIsOn;
     private bool gamePassed;
-    private bool gameFullyUnlocked = true;
-    private bool firstCompletion = true;
-    private double durabilityMultiplier;
-    private double consumptionMultiplier;
+    [Save] public bool gameFullyUnlocked = false;
+    [Save] public bool firstCompletion = true;
     private bool descriptionExists = false;
 
     private Label difficultyDescription;
@@ -69,6 +69,7 @@ public class autopeli : PhysicsGame
     private List<Image> carConditions;
 
     private List<Timer> gameTimers;
+    private List<Timer> zoneTimers;
 
     private GameObject pointMultiplierUI;
 
@@ -106,12 +107,17 @@ public class autopeli : PhysicsGame
     private Label pointMeter;
     private Timer pointHelpTimer;
 
-    private ScoreList hiscores = new ScoreList(20, false, 0);
+    private Surface[] railings;
+
+    [Save] public ScoreList hiscores = new ScoreList(15, false, 0);
     private HighScoreWindow hiscoresWindow;
+    private bool stefu = false;
 
 
     public override void Begin()
     {
+        gameFullyUnlocked = DataStorage.TryLoad<bool>(gameFullyUnlocked, "completed.xml");
+        firstCompletion = DataStorage.TryLoad<bool>(firstCompletion, "notFirst.xml");
         hiscores = DataStorage.TryLoad<ScoreList>(hiscores, "hiscores.xml");
         SetPlayerName();
     }
@@ -133,7 +139,6 @@ public class autopeli : PhysicsGame
 
         ClearAll();
 
-        
         Level.Background.Image = LoadImage("mainmenu_bgimg");
 
         Label mainMenuTitle = CreateLabel("MAIN MENU", Color.White, y: 200, scale: 1.2);
@@ -175,18 +180,23 @@ public class autopeli : PhysicsGame
 
     public void MainMenuMovement(Label[] mainMenuButtons)
     {
-        Color colorChocen = Color.Gold;
+        bool juhe = true;
 
         if (gameFullyUnlocked)
         {
             foreach (Label button in mainMenuButtons)
             {
-                if (Mouse.IsCursorOn(button) && button.TextColor != Color.Gold)
+                if (Mouse.IsCursorOn(button))
                 {
-                    SoundEffect hover = LoadSoundEffect("hover");
-                    hover.Play();
+                    juhe = false;
+                    if (!stefu)
+                    {
+                        stefu = true;
+                        SoundEffect hover = LoadSoundEffect("hover");
+                        hover.Play();
+                    }
 
-                    button.TextColor = colorChocen;
+                    button.TextColor = Color.Gold;
                     button.TextScale = new Vector(1.05, 1.05);
                 }
                 else
@@ -195,17 +205,24 @@ public class autopeli : PhysicsGame
                     button.TextScale = new Vector(1, 1);
                 }
             }
+
+            if (juhe) stefu = false;
         }
         else
         {
-            for (int i = 0; i < 4; i += 3)
+            for (int i = 0; i < mainMenuButtons.Length; i += 3)
             {
-                if (Mouse.IsCursorOn(mainMenuButtons[i]) && mainMenuButtons[i].TextColor != Color.Gold)
+                if (Mouse.IsCursorOn(mainMenuButtons[i]))
                 {
-                    SoundEffect hover = LoadSoundEffect("hover");
-                    hover.Play();
+                    juhe = false;
+                    if (!stefu)
+                    {
+                        stefu = true;
+                        SoundEffect hover = LoadSoundEffect("hover");
+                        hover.Play();
+                    }
 
-                    mainMenuButtons[i].TextColor = colorChocen;
+                    mainMenuButtons[i].TextColor = Color.Gold;
                     mainMenuButtons[i].TextScale = new Vector(1.05, 1.05);
                 }
                 else
@@ -214,6 +231,8 @@ public class autopeli : PhysicsGame
                     mainMenuButtons[i].TextScale = new Vector(1, 1);
                 }
             }
+
+            if (juhe) stefu = false;
         }
     }
 
@@ -233,8 +252,8 @@ public class autopeli : PhysicsGame
         List<Color> buttonColors = new List<Color>() { new Color(0.0, 1.0, 0.0), Color.GreenYellow, Color.Yellow };
 
         List<string> descriptions = new List<string>() { "Very easy and meant only for practicing the game basics.",
-                                                       "Main difficulty of the game.\nComplete this to unlock new content.",
-                                                       "Challenge yourself and take on\nthe full might of the developer!"};
+                                                       "Main difficulty of the game. Complete this to unlock new content.",
+                                                       "Challenge yourself and take on the full might of the developer!"};
 
         List<Label> difficultyMenuButtons = new List<Label>() { CreateLabel("Beginner", Color.White, y: 50.0, scale: 1.1), CreateLabel("Standard", Color.White, scale: 1.1) };
 
@@ -347,6 +366,7 @@ public class autopeli : PhysicsGame
         gameIsOn = true;
 
         gameTimers = new List<Timer>();
+        zoneTimers = new List<Timer>();
         objectGroup = new List<PhysicsObject>();
         zoneMultipliers = new double[4] { 1, 1, 1, 1 };
 
@@ -359,7 +379,7 @@ public class autopeli : PhysicsGame
 
     public void StartGame()
     {
-        AddBorders();
+        AddWalls();
         AddStartScreenItems();
         AddPlayerUI();
 
@@ -388,6 +408,7 @@ public class autopeli : PhysicsGame
                 SetControls(playerMovements);
 
                 foreach (Timer t in gameTimers) t.Start();
+                zoneTimers[0].Start(6);
 
                 switch (difficulty)
                 {
@@ -451,7 +472,7 @@ public class autopeli : PhysicsGame
 
         playerMovements = new Vector[4];
 
-        // TODO: Fiksaa liikkuminen alussa ja viivan liikkeellelähtö
+        // TODO: Fiksaa liikkuminen alussa
 
         switch (selectedCar)
         {
@@ -515,8 +536,6 @@ public class autopeli : PhysicsGame
         CollisionHandler<PhysicsObject, PhysicsObject> ObstacleHandler = (player, target) => CollisionWithObstacle(player, target, carConditions);
         CollisionHandler<PhysicsObject, PhysicsObject> RepairkitHandler = (player, target) => CollisionWithRepairkit(player, target, carConditions);
 
-        AddCollisionHandler(player, "verticalwalls", CollisionWithVWalls);
-        AddCollisionHandler(player, "horizontalwalls", CollisionWithHWalls);
         AddCollisionHandler(player, "obstacle_group", ObstacleHandler);
         AddCollisionHandler(player, "fuel_group", CollisionWithFuel);
         AddCollisionHandler(player, "repairkit_group", RepairkitHandler);
@@ -544,15 +563,27 @@ public class autopeli : PhysicsGame
     }
 
 
-    public void AddBorders()
+    private void AddWalls()
     {
-        PhysicsObject[] borders = new PhysicsObject[4] { Level.CreateTopBorder(-1, false), Level.CreateBottomBorder(-1, false), Level.CreateLeftBorder(-1, false), Level.CreateRightBorder(-1, false) };
-        
-        foreach (PhysicsObject border in borders)
+        Surface[] walls = new Surface[] { new Surface(130, Screen.Height), new Surface(130, Screen.Height) };
+        walls[0].X = Screen.Left + walls[0].Width / 2;
+        walls[1].X = Screen.Right - walls[1].Width / 2;
+
+        foreach (Surface wall in walls)
         {
-            border.Tag = "border_group";
-            border.AddCollisionIgnoreGroup(1);
-            Add(border);
+            wall.Color = Color.Green;
+            wall.IgnoresCollisionResponse = true;
+            Add(wall);
+        }
+
+        railings = new Surface[] { new Surface(10, Screen.Height), new Surface(10, Screen.Height) };
+        railings[0].Left = walls[0].Right;
+        railings[1].Right = walls[1].Left;
+
+        foreach (Surface railing in railings)
+        {
+            railing.Color = Color.White;
+            Add(railing);
         }
     }
 
@@ -625,7 +656,7 @@ public class autopeli : PhysicsGame
             obstacleCreator.Interval = RandomGen.NextDouble(spawnMin, spawnMax) / zoneMultipliers[1];
 
             PhysicsObject obstacle = new PhysicsObject(RandomGen.NextDouble(sizeMin, sizeMax) * zoneMultipliers[2], RandomGen.NextDouble(sizeMin, sizeMax) * zoneMultipliers[2]);
-            obstacle.Position = new Vector(RandomGen.NextDouble(Screen.Left + 10.0, Screen.Right - 10.0), RandomGen.NextDouble(Screen.Top + 10.0, Screen.Top + 40.0));
+            obstacle.Position = new Vector(RandomGen.NextDouble(railings[0].Right + obstacle.Width / 2, railings[1].Left + obstacle.Width / 2), RandomGen.NextDouble(Screen.Top + 10.0, Screen.Top + 40.0));
             obstacle.Angle = RandomGen.NextAngle();
             obstacle.Image = LoadImage("obstacle");
             obstacle.CanRotate = false;
@@ -656,7 +687,7 @@ public class autopeli : PhysicsGame
             collectibleCreator.Interval = RandomGen.NextDouble(spawnMin, spawnMax);
 
             collectible = new PhysicsObject(25.0, 25.0);
-            collectible.Position = new Vector(RandomGen.NextDouble(Screen.Left + 10.0, Screen.Right - 10.0), RandomGen.NextDouble(Screen.Top + 10.0, Screen.Top + 40.0));
+            collectible.Position = new Vector(RandomGen.NextDouble(railings[0].Right + collectible.Width / 2, railings[1].Left + collectible.Width / 2), RandomGen.NextDouble(Screen.Top + 10.0, Screen.Top + 40.0));
             collectible.Image = LoadImage(collectibleImage);
             collectible.CanRotate = false;
             collectible.IgnoresCollisionResponse = true;
@@ -673,7 +704,7 @@ public class autopeli : PhysicsGame
 
 
     public void SetControls(Vector[] playerMovements)
-    {
+    {        
         Keyboard.Listen(Key.W, ButtonState.Pressed, SetPlayerMovementSpeed, "Accelerate", playerMovements[0]);
         Keyboard.Listen(Key.W, ButtonState.Released, SetPlayerMovementSpeed, null, -playerMovements[0]);
         Keyboard.Listen(Key.S, ButtonState.Pressed, SetPlayerMovementSpeed, "Decelerate", playerMovements[1]);
@@ -969,17 +1000,6 @@ public class autopeli : PhysicsGame
     }
 
 
-    private void CollisionWithVWalls(PhysicsObject player, PhysicsObject target)
-    {
-        player.Velocity = new Vector(0, player.Velocity.Y);
-    }
-
-    private void CollisionWithHWalls(PhysicsObject player, PhysicsObject target)
-    {
-        player.Velocity = new Vector(player.Velocity.X, 0);
-    }
-
-
     private void ChangeCarCondition(List<Image> conditions)
     {
         switch (healthRemaining.Value)
@@ -1107,7 +1127,12 @@ public class autopeli : PhysicsGame
     public void GameEnd(string message)
     {
         gameIsOn = false;
-        if (gamePassed && difficulty == "standard" && firstCompletion) gameFullyUnlocked = true;
+        if (gamePassed && difficulty == "standard" && firstCompletion)
+        {
+            gameFullyUnlocked = true;
+            DataStorage.Save<bool>(gameFullyUnlocked, "completed.xml");
+        }
+        if (difficulty == "endurance") DataStorage.Save<double>(pointTotal.Value, "hiscores.xml");
 
         DisableControls();
         StopGameTimers();
@@ -1118,6 +1143,8 @@ public class autopeli : PhysicsGame
         DoubleMeter countdown = new DoubleMeter(3);
         Label endTimerDisplay = CreateLabel("", Color.Black, y: -20);
         endTimerDisplay.BindTo(countdown);
+        endTimerDisplay.DecimalPlaces = 0;
+        endTimerDisplay.TextScale = new Vector(1.5, 1.5);
         Add(endTimerDisplay);
 
         Timer endHelpTimer = new Timer(1);
@@ -1154,6 +1181,7 @@ public class autopeli : PhysicsGame
     public void StopGameTimers()
     {
         foreach (Timer t in gameTimers) t.Stop();
+        foreach (Timer t in zoneTimers) t.Stop();
     }
 
 
@@ -1164,20 +1192,24 @@ public class autopeli : PhysicsGame
 
         MediaPlayer.Stop();
 
-        Label[] endMenuButtons = new Label[] { CreateLabel("Retry", Color.Black, y: 50), new Label(), CreateLabel("MainMenu", Color.Black, y: -50) };
+        Label[] endMenuButtons = new Label[] { CreateLabel("Retry", Color.White, y: 50), new Label(), CreateLabel("MainMenu", Color.White, y: -50) };
         
         if (difficulty != "endurance")
         {
-            endMenuButtons[1] = CreateLabel("Change Difficulty", Color.Black, y: 0);
+            endMenuButtons[1] = CreateLabel("Change Difficulty", Color.White, y: 0);
             Mouse.ListenOn(endMenuButtons[1], MouseButton.Left, ButtonState.Pressed, DifficultyMenu, null);
         }
         else
         {
-            endMenuButtons[1] = CreateLabel("Hiscores", Color.Black, y: 0);
+            endMenuButtons[1] = CreateLabel("Hiscores", Color.White, y: 0);
             Mouse.ListenOn(endMenuButtons[1], MouseButton.Left, ButtonState.Pressed, Hiscores, null);
         }
 
-        foreach (Label button in endMenuButtons) Add(button);
+        foreach (Label button in endMenuButtons) Add(button, 2);
+
+        GameObject shadow = new GameObject(150, 170);
+        shadow.Color = new Color(0, 0, 0, 0.75);
+        Add(shadow, 1);
 
         Mouse.ListenMovement(1.0, EndMenuMovement, null, endMenuButtons);
         Mouse.ListenOn(endMenuButtons[0], MouseButton.Left, ButtonState.Pressed, CreateStage, null, car);
@@ -1194,12 +1226,12 @@ public class autopeli : PhysicsGame
                 SoundEffect hover = LoadSoundEffect("hover");
                 hover.Play();
 
-                endMenuButtons[i].TextColor = Color.White;
+                endMenuButtons[i].TextColor = Color.Gold;
                 endMenuButtons[i].TextScale = new Vector(1.1, 1.1);
             }
             else
             {
-                endMenuButtons[i].TextColor = Color.Black;
+                endMenuButtons[i].TextColor = Color.White;
                 endMenuButtons[i].TextScale = new Vector(1, 1);
             }
         }
@@ -1246,6 +1278,7 @@ public class autopeli : PhysicsGame
     public void DisplayUnlockMessage()
     {
         firstCompletion = false;
+        DataStorage.Save<bool>(firstCompletion, "notFirst.xml");
 
         Label unlocks = CreateLabel("You have beaten arcade mode and unlocked new content!", new Color(0.0, 1.0, 0.0), scale: 0.7);
         unlocks.LifetimeLeft = TimeSpan.FromSeconds(5);
@@ -1260,7 +1293,6 @@ public class autopeli : PhysicsGame
         SoundEffect popUp = LoadSoundEffect("4");
         popUp.Play();
     }
-    // DataStorage.Save<ScoreList>(hiscores, "hiscores.xml");
 
 
     public void LockedContent()
@@ -1501,8 +1533,8 @@ public class autopeli : PhysicsGame
         zoneMeter.Color = Color.Black;
         Add(zoneMeter);
 
-        Timer zoneTimer = new Timer(40);
-        gameTimers.Add(zoneTimer);
+        Timer zoneTimer = new Timer(35);
+        zoneTimers.Add(zoneTimer);
 
         zoneTimer.Timeout += delegate
         {
@@ -1556,7 +1588,7 @@ public class autopeli : PhysicsGame
         foreach (Timer t in gameTimers) t.Stop();
 
         Timer pauseTimer = new Timer(pauseLength);
-        gameTimers.Add(pauseTimer);
+        zoneTimers.Add(pauseTimer);
 
         pauseTimer.Timeout += delegate
         {
