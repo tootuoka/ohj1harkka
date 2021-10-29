@@ -6,44 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-/*namespace AutoPeli
-{
-    public class CarClass : PhysicsObject
-    {
-        public string Name;
-        public Vector[] playerMovement;
-        public IntMeter healthRemaining;
-        public double fuelConsumptionMultiplier;
-        public DoubleMeter fuelRemaining;
-
-        public CarClass(string sCarName, double CarMovement, int HullDurability, double Fconsumption, double FuelTankSize, double width = 40, double height = 80) : base(width, height)
-        {
-            this.Position = new Vector(0.0, -250.0);
-            this.Restitution = -1;
-            this.CanRotate = false;
-            this.Shape = Shape.Rectangle;
-
-            Name = sCarName;
-
-            playerMovement = SetMovement(CarMovement);
-
-            healthRemaining = new IntMeter(HullDurability, 0, HullDurability);
-
-            fuelConsumptionMultiplier = Fconsumption;
-
-            fuelRemaining = new DoubleMeter(FuelTankSize, 0.0, FuelTankSize);
-        }
-
-        private Vector[] SetMovement(double CarMovement)
-        {
-
-            Vector[] vMovementSpeed = new Vector[4] { new Vector(0, CarMovement), new Vector(0, -CarMovement), new Vector(-CarMovement, 0), new Vector(CarMovement, 0) };
-
-            return vMovementSpeed;
-        }
-    }
-}*/
-
 
 public class autopeli : PhysicsGame
 {
@@ -62,6 +24,8 @@ public class autopeli : PhysicsGame
     [Save] public bool gameFullyUnlocked = false;
     [Save] public bool firstCompletion = true;
     private bool descriptionExists = false;
+
+    private readonly int saveSlots = 5;
 
     private Label difficultyDescription;
 
@@ -1537,7 +1501,7 @@ public class autopeli : PhysicsGame
 
     private void SavePlayer(string playerName)
     {
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < saveSlots; i++)
         {
             if (DataStorage.Exists($"player{i}") == false)
             {
@@ -1554,7 +1518,7 @@ public class autopeli : PhysicsGame
     {
         if (!firstCompletion) return;
 
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < saveSlots; i++)
         {
             if (DataStorage.Exists($"completion{i}") == false)
             {
@@ -1569,7 +1533,7 @@ public class autopeli : PhysicsGame
     {
         if (gameFullyUnlocked) return;
 
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < saveSlots; i++)
         {
             if (DataStorage.Exists($"unlocks{i}") == false)
             {
