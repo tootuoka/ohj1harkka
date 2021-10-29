@@ -23,11 +23,8 @@ public class autopeli : PhysicsGame
     private bool gamePassed;
     [Save] public bool gameFullyUnlocked = false;
     [Save] public bool firstCompletion = true;
-    private bool descriptionExists = false;
 
     private readonly int saveSlots = 5;
-
-    private Label difficultyDescription;
 
     private double[] zoneMultipliers;
 
@@ -38,7 +35,6 @@ public class autopeli : PhysicsGame
 
     private GameObject pointMultiplierUI;
 
-    private Label carInfo;
     private List<GameObject> carList;
     private List<Label> carNameList;
 
@@ -77,6 +73,7 @@ public class autopeli : PhysicsGame
     [Save] public ScoreList hiscores = new ScoreList(15, false, 0);
     private HighScoreWindow hiscoresWindow;
     private bool soundPlayed = false;
+    private bool mouseOnButton = false;
 
 
     public override void Begin()
@@ -216,7 +213,7 @@ public class autopeli : PhysicsGame
             //AddBackgroundMusic("menu_orig");
             Mouse.ListenMovement(1, MainMenuMovement, null, mainMenuButtons);
             mainMenuButtons[1].TextColor = Color.Gray;
-            mainMenuButtons[2].TextColor = Color.Gray;
+            mainMenuButtons[3].TextColor = Color.Gray;
             Mouse.ListenOn(mainMenuButtons[0], MouseButton.Left, ButtonState.Pressed, DifficultyMenu, null);
             Mouse.ListenOn(mainMenuButtons[1], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
             Mouse.ListenOn(mainMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LoadMenu, null);
@@ -235,16 +232,20 @@ public class autopeli : PhysicsGame
 
         Level.BackgroundColor = Color.Gray;
 
-        Label difficultyMenuTitle = CreateLabel("DIFFICULTY SELECTION", Color.White, y: 200, scale: 1.2);
+        Label difficultyMenuTitle = CreateLabel("DIFFICULTY SELECTION", Color.White, y: 120, scale: 1.2);
         Add(difficultyMenuTitle);
 
-        List<Color> buttonColors = new List<Color>() { new Color(0.0, 1.0, 0.0), Color.GreenYellow, Color.Yellow };
+        if (!gameFullyUnlocked)
+        {
+            Label message = CreateLabel("(Complete the game on standard difficulty to unlock new content.)", Color.GreenYellow, y: -300, scale: 0.65);
+            Add(message);
+        }
 
-        List<string> descriptions = new List<string>() { "Very easy and meant only for practicing the game basics.",
-                                                       "Main difficulty of the game. Complete this to unlock new content.",
-                                                       "Challenge yourself and take on the full might of the developer!"};
-
-        List<Label> difficultyMenuButtons = new List<Label>() { CreateLabel("Beginner", Color.White, y: 50.0, scale: 1.1), CreateLabel("Standard", Color.White, scale: 1.1) };
+        List<Label> difficultyMenuButtons = new List<Label>()
+        {
+            CreateLabel("Beginner", Color.White, y: 50.0, scale: 1.1),
+            CreateLabel("Standard", Color.White, scale: 1.1)
+        };
 
         if (gameFullyUnlocked)
         {
@@ -253,9 +254,7 @@ public class autopeli : PhysicsGame
         }
         foreach (Label button in difficultyMenuButtons) Add(button);
 
-        object[] difficultyButtonParameters = new object[2] { descriptions, difficultyDescription };
-
-        Mouse.ListenMovement(0.5, DifficultyMenuMovement, null, difficultyMenuButtons, buttonColors, descriptions);
+        Mouse.ListenMovement(0.5, DifficultyMenuMovement, null, difficultyMenuButtons);
         Mouse.ListenOn(difficultyMenuButtons[0], MouseButton.Left, ButtonState.Pressed, CarMenu, null, "beginner");
         Mouse.ListenOn(difficultyMenuButtons[1], MouseButton.Left, ButtonState.Pressed, CarMenu, null, "standard");
     }
@@ -268,24 +267,23 @@ public class autopeli : PhysicsGame
 
         ClearAll();
 
+        Label[] descriptions = new Label[4]
+        {
+        CreateLabel("MOB = mobility (directional maneuvering speed).", Color.Black, -333.6, -305, 0.6),
+        CreateLabel("DUR = durability (resistance against crashing damage).", Color.Black, -315, -320, 0.6),
+        CreateLabel("CON = consumption (conservation of fuel usage).", Color.Black, -331.4, -335, 0.6),
+        CreateLabel("CAP = capacity (size of fuel tank & refueling rate).", Color.Black, -331.5, -350, 0.6)
+        };
+
+        foreach (Label description in descriptions) Add(description);
+
         difficulty = selectedDifficulty;
         Level.BackgroundColor = Color.Gray;
-
-        carInfo = CreateLabel("Info", Color.LightYellow, -300, -240, 0.55);
-        carInfo.BorderColor = Color.Black;
-        carInfo.Color = Color.Black;
-        Add(carInfo);
-
-        Label[] descriptions = new Label[4] { CreateLabel("MOB stands for mobility and defines how easily the car maneuvers around the stage.", Color.Black, 0, -210, 0.6, false),
-                                              CreateLabel("DUR stands for durability and defines how resistant the car is against crash-inflicted damage.", Color.Black, 0, -230, 0.6, false),
-                                              CreateLabel("CON stands for consumption and defines how conservative the car is in its fuel usage.", Color.Black, 0, -250, 0.6, false),
-                                              CreateLabel("CAP stands for capacity and defines the car's fuel tank size", Color.Black, 0, -270, 0.6, false) };
-        foreach (Label description in descriptions) Add(description);
 
         AddCarList();
         AddStars();
 
-        Mouse.ListenMovement(1, CarMenuMovement, null, descriptions);
+        Mouse.ListenMovement(1, CarMenuMovement, null);
 
         Mouse.ListenOn(carList[0], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Basic");
         Mouse.ListenOn(carList[1], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Sports");
@@ -359,7 +357,7 @@ public class autopeli : PhysicsGame
                 SetControls(playerMovements);
 
                 foreach (Timer t in gameTimers) t.Start();
-                zoneTimers[0].Start(6);
+                if (difficulty == "endurance") zoneTimers[0].Start(6);
 
                 switch (difficulty)
                 {
@@ -1352,31 +1350,6 @@ public class autopeli : PhysicsGame
         return star;
     }
 
-
-    private void CarLabelChange(List<GameObject> carList, int i)
-    {
-        //true settings
-        if (Mouse.IsCursorOn(carList[i]))
-        {
-            carList[i].Width = 85.0;
-            carList[i].Height = 170.0;
-
-            carNameList[i].TextScale = new Vector(1.0, 1.0);
-            carNameList[i].Y = 160;
-            carNameList[i].TextColor = Color.Gold;
-        }
-        else
-        {
-            //false settings
-            carList[i].Width = 75.0;
-            carList[i].Height = 150.0;
-
-            carNameList[i].TextScale = new Vector(0.8, 0.8);
-            carNameList[i].Y = 150;
-            carNameList[i].TextColor = Color.Black;
-        }
-    }
-
     private void ActivateStars(List<GameObject> carList, int i)
     {
         if (Mouse.IsCursorOn(carList[i]))
@@ -1544,148 +1517,120 @@ public class autopeli : PhysicsGame
 
 
 
-    public void CreateSound(string soundFileName)
-    {
-        SoundEffect sound = LoadSoundEffect(soundFileName);
-        sound.Play();
-    }
 
-    public Label UpdateLabel(Color hilightColor, double sizeMultiplier = 1)
-    {
-        Label button = new Label();
-        button.TextColor = hilightColor;
-        button.TextScale = new Vector(sizeMultiplier, sizeMultiplier);
-        return button;
-    }
 
 
     private void OpeningMenuMovement(List<Label> openingMenuButtons)
     {
-        bool mouseNotOnButton = true;
+        mouseOnButton = false;
 
         foreach (Label button in openingMenuButtons)
         {
-            if (Mouse.IsCursorOn(button))
-            {
-                mouseNotOnButton = false;
-
-                if (!soundPlayed)
-                {
-                    CreateSound("hover");
-                    soundPlayed = true;
-                }
-
-                UpdateLabel(Color.Gold, 1.05);
-            }
-            else
-            {
-                UpdateLabel(Color.White);
-            }
+            HandleButton(button, Color.White, Color.Gold);
         }
 
-        if (mouseNotOnButton) soundPlayed = false;
+        if (!mouseOnButton) soundPlayed = false;
     }
 
 
     private void LoadMenuMovement(List<Label> profileLabels)
     {
-        bool mouseNotOnButton = true;
+        mouseOnButton = false;
 
         for (int i = 0; i < 5; i++)
         {
-            if (Mouse.IsCursorOn(profileLabels[i]) && DataStorage.Exists($"player{i}"))
+            if (DataStorage.Exists($"player{i}"))
             {
-                mouseNotOnButton = false;
-
-                if (!soundPlayed)
-                {
-                    CreateSound("hover");
-                    soundPlayed = true;
-                }
-
-                UpdateLabel(Color.Red);
-            }
-            else
-            {
-                UpdateLabel(Color.Black);
+                HandleButton(profileLabels[i], Color.Black, Color.Red, 0.9, 0.9);
             }
         }
 
-        if (mouseNotOnButton) soundPlayed = false;
+        if (!mouseOnButton) soundPlayed = false;
     }
 
 
     public void MainMenuMovement(Label[] mainMenuButtons)
     {
-        bool mouseNotOnButton = true;
+        mouseOnButton = false;
 
         if (gameFullyUnlocked)
         {
-
-            HandleButton(mainMenuButtons[0]);
-            HandleButton(mainMenuButtons[1]);
-            HandleButton(mainMenuButtons[2]);
-            HandleButton(mainMenuButtons[3]);
-            HandleButton(mainMenuButtons[4]);
-
-            //HandleButtons(mainMenuButtons);
-
-            //for (int i = 0; i < mainMenuButtons.Length; i++)
-            //{
-            //    if (Mouse.IsCursorOn(mainMenuButtons[i]))
-            //    {
-            //        mouseNotOnButton = false;
-
-            //        if (!soundPlayed)
-            //        {
-            //            CreateSound("hover");
-            //            soundPlayed = true;
-            //        }
-
-            //        mainMenuButtons[i] = UpdateLabel(Color.Gold, 1.05);
-            //    }
-            //    else
-            //    {
-            //        mainMenuButtons[i] = UpdateLabel(Color.White);
-            //    }
-            //}
-
-            //if (mouseNotOnButton) soundPlayed = false;
+            foreach (Label button in mainMenuButtons)
+            {
+                HandleButton(button, Color.White, Color.Gold);
+            }
         }
         else
         {
-            for (int i = 0; i < mainMenuButtons.Length; i += 3)
+            for (int i = 0; i < mainMenuButtons.Length; i += 2)
             {
-                if (Mouse.IsCursorOn(mainMenuButtons[i]))
-                {
-                    mouseNotOnButton = false;
-                     
-                    if (!soundPlayed)
-                    {
-                        CreateSound("hover");
-                        soundPlayed = true;
-                    }
-
-                    UpdateLabel(Color.Gold, 1.05);
-                }
-                else
-                {
-                    UpdateLabel(Color.White);
-                }
+                HandleButton(mainMenuButtons[i], Color.White, Color.Gold);
             }
-
-            if (mouseNotOnButton) soundPlayed = false;
         }
+
+        if (!mouseOnButton) soundPlayed = false;
     }
 
 
-    private void HandleButton(Label button)
+    public void DifficultyMenuMovement(List<Label> difficultyMenuButtons)
     {
-        bool mouseNotOnButton = true;
+        mouseOnButton = false;
 
+        Color[] buttonColors = new Color[3] { new Color(0.0, 1.0, 0.0), Color.Yellow, Color.Red };
+
+        for (int i = 0; i < difficultyMenuButtons.Count; i++)
+        {
+            HandleButton(difficultyMenuButtons[i], Color.White, buttonColors[i], 1.1, 1.2);
+        }
+
+        if (!mouseOnButton) soundPlayed = false;
+    }
+
+        
+
+
+    private void CarMenuMovement()
+    {
+        mouseOnButton = false;
+
+        for (int i = 0; i < carNameList.Count; i++)
+        {
+            if (Mouse.IsCursorOn(carList[i]))
+            {               
+                HandleCarLabel(carList, i);
+                foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = true;
+                ActivateStars(carList, i);
+            }
+            else
+            {
+                foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = false;
+                HandleCarLabel(carList, i);
+                ActivateStars(carList, i);
+            }
+        }
+
+        if (!mouseOnButton) soundPlayed = false;
+    }
+
+
+    private void EndMenuMovement(Label[] endMenuButtons)
+    {
+        mouseOnButton = false;
+
+        for (int i = 0; i < endMenuButtons.Length; i++)
+        {
+            HandleButton(endMenuButtons[i], Color.White, Color.Gold);
+        }
+
+        if (!mouseOnButton) soundPlayed = false;
+    }
+
+
+    private void HandleButton(Label button, Color normal, Color hilight, double sizeNorm = 1, double sizeHilight = 1.05)
+    {
         if (Mouse.IsCursorOn(button))
         {
-            mouseNotOnButton = false;
+            mouseOnButton = true;
 
             if (!soundPlayed)
             {
@@ -1693,112 +1638,54 @@ public class autopeli : PhysicsGame
                 soundPlayed = true;
             }
 
-            button = UpdateLabel(Color.Gold, 1.05);
+            UpdateLabel(button, hilight, sizeHilight);
         }
         else
         {
-            button = UpdateLabel(Color.White);
-        }
-
-        if (mouseNotOnButton) soundPlayed = false;
-    }
-
-
-
-    public void DifficultyMenuMovement(List<Label> difficultyMenuButtons, List<Color> buttonColors, List<string> descriptions)
-    {
-        bool mouseNotOnButton = true;
-
-        for (int i = 0; i < difficultyMenuButtons.Count; i++)
-        {
-            if (Mouse.IsCursorOn(difficultyMenuButtons[i]))
-            {
-                mouseNotOnButton = false;
-
-                if (!soundPlayed)
-                {
-                    CreateSound("hover");
-                    soundPlayed = true;
-                }
-
-                difficultyMenuButtons[i] = UpdateLabel(buttonColors[i], 1.2);
-
-                if (!descriptionExists)
-                {
-                    difficultyDescription = CreateLabel(descriptions[i], buttonColors[i], y: -150, scale: 0.65);
-                    Add(difficultyDescription);
-                    descriptionExists = true;
-                }
-            }
-            else
-            {
-                difficultyMenuButtons[i] = UpdateLabel(Color.White, 1.1);
-
-                if (descriptionExists)
-                {
-                    difficultyDescription.Destroy();
-                    descriptionExists = false;
-                }
-            }
-
-            if (mouseNotOnButton) soundPlayed = false;
+            UpdateLabel(button, normal, sizeNorm);
         }
     }
 
 
-    private void CarMenuMovement(Label[] descriptions)
+    private void HandleCarLabel(List<GameObject> carList, int i)
     {
-        for (int i = 0; i < carNameList.Count; i++)
+        if (Mouse.IsCursorOn(carList[i]))
         {
-            if (Mouse.IsCursorOn(carList[i]))
+            mouseOnButton = true;
+
+            if (!soundPlayed)
             {
                 CreateSound("hover");
-
-                CarLabelChange(carList, i);
-                foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = true;
-                ActivateStars(carList, i);
+                soundPlayed = true;
             }
-            else
-            {
-                foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = false;
-                CarLabelChange(carList, i);
-                ActivateStars(carList, i);
-            }
-        }
 
-        if (Mouse.IsCursorOn(carInfo))
-        {
-            foreach (Label description in descriptions) description.IsVisible = true;
-            carInfo.TextColor = Color.Gold;
-            carInfo.Color = Color.Transparent;
-            carInfo.BorderColor = Color.Transparent;
-            carInfo.TextScale = new Vector(0.85, 0.85);
+            UpdateLabel(carNameList[i], Color.Gold, 1);
+            carNameList[i].Y = 160;
+
+            carList[i].Width = 85.0;
+            carList[i].Height = 170.0;
         }
         else
         {
-            foreach (Label description in descriptions) description.IsVisible = false;
-            carInfo.TextColor = Color.LightYellow;
-            carInfo.Color = Color.Black;
-            carInfo.BorderColor = Color.Black;
-            carInfo.TextScale = new Vector(0.55, 0.55);
+            UpdateLabel(carNameList[i], Color.Black, 0.8);
+            carNameList[i].Y = 150;
+
+            carList[i].Width = 75.0;
+            carList[i].Height = 150.0;            
         }
     }
 
 
-    private void EndMenuMovement(Label[] endMenuButtons)
+    public void UpdateLabel(Label button, Color updatedColor, double sizeMultiplier)
     {
-        for (int i = 0; i < endMenuButtons.Length; i++)
-        {
-            if (Mouse.IsCursorOn(endMenuButtons[i]))
-            {
-                CreateSound("hover");
+        button.TextColor = updatedColor;
+        button.TextScale = new Vector(sizeMultiplier, sizeMultiplier);
+    }
 
-                endMenuButtons[i] = UpdateLabel(Color.Gold, 1.05);
-            }
-            else
-            {
-                endMenuButtons[i] = UpdateLabel(Color.White);
-            }
-        }
+
+    public void CreateSound(string soundFileName)
+    {
+        SoundEffect sound = LoadSoundEffect(soundFileName);
+        sound.Play();
     }
 }
