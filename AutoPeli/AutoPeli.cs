@@ -1686,7 +1686,7 @@ public class autopeli : PhysicsGame
                     soundPlayed = true;
                 }
 
-                UpdateLabel(buttonColors[i], 1.2);
+                difficultyMenuButtons[i] = UpdateLabel(buttonColors[i], 1.2);
 
                 if (!descriptionExists)
                 {
@@ -1697,7 +1697,7 @@ public class autopeli : PhysicsGame
             }
             else
             {
-                UpdateLabel(Color.White, 1.1);
+                difficultyMenuButtons[i] = UpdateLabel(Color.White, 1.1);
 
                 if (descriptionExists)
                 {
@@ -1758,11 +1758,11 @@ public class autopeli : PhysicsGame
             {
                 CreateSound("hover");
 
-                UpdateLabel(Color.Gold, 1.05);
+                endMenuButtons[i] = UpdateLabel(Color.Gold, 1.05);
             }
             else
             {
-                UpdateLabel(Color.White);
+                endMenuButtons[i] = UpdateLabel(Color.White);
             }
         }
     }
