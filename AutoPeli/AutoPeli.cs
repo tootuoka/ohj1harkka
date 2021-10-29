@@ -76,15 +76,14 @@ public class autopeli : PhysicsGame
 
     [Save] public ScoreList hiscores = new ScoreList(15, false, 0);
     private HighScoreWindow hiscoresWindow;
-    private bool stefu = false;
+    private bool soundPlayed = false;
 
 
     public override void Begin()
     {
-        profiles = new string[5] { "*empty*", "*empty*", "*empty*", "*empty*", "*empty*" };
+        profiles = new string[5] { "*Empty*", "*Empty*", "*Empty*", "*Empty*", "*Empty*" };
         hiscores = DataStorage.TryLoad<ScoreList>(hiscores, "hiscores.xml");
         OpeningMenu();
-
     }
 
 
@@ -129,7 +128,7 @@ public class autopeli : PhysicsGame
             profileLabel.Y = y;
             profileLabels.Add(profileLabel);
 
-            if (DataStorage.Exists($"profile{i}.xml"))
+            if (DataStorage.Exists($"player{i}.xml"))
             {
                 profileLabel.TextColor = Color.White;
                 Mouse.ListenOn(profileLabels[i], MouseButton.Left, ButtonState.Pressed, LoadProfile, null, i);
@@ -195,7 +194,7 @@ public class autopeli : PhysicsGame
         Label playerIndicator = CreateLabel($"Player: {player}", Color.Gray, -220, 255, 0.5);
         Add(playerIndicator, 1);
 
-        Label[] mainMenuButtons = new Label[4] { CreateLabel("Arcade Mode", Color.White, y: 60.0), CreateLabel("Endurance Mode", Color.White, y: 20.0), CreateLabel("Hiscores", Color.White, y: -20.0), CreateLabel("Exit", Color.White, y: -60.0) };
+        Label[] mainMenuButtons = new Label[5] { CreateLabel("Arcade Mode", Color.White, y: 70.0), CreateLabel("Endurance Mode", Color.White, y: 35.0), CreateLabel("Load Profile", Color.White, y: 0), CreateLabel("Hiscores", Color.White, y: -35.0), CreateLabel("Exit", Color.White, y: -70.0) };
         foreach (Label button in mainMenuButtons) Add(button, -1);
 
         if (gameFullyUnlocked)
@@ -208,8 +207,9 @@ public class autopeli : PhysicsGame
             Mouse.ListenMovement(1, MainMenuMovement, null, mainMenuButtons);
             Mouse.ListenOn(mainMenuButtons[0], MouseButton.Left, ButtonState.Pressed, DifficultyMenu, null);
             Mouse.ListenOn(mainMenuButtons[1], MouseButton.Left, ButtonState.Pressed, CarMenu, null, "endurance");
-            Mouse.ListenOn(mainMenuButtons[2], MouseButton.Left, ButtonState.Pressed, Hiscores, null);
-            Mouse.ListenOn(mainMenuButtons[3], MouseButton.Left, ButtonState.Pressed, ConfirmExit, null);
+            Mouse.ListenOn(mainMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LoadMenu, null);
+            Mouse.ListenOn(mainMenuButtons[3], MouseButton.Left, ButtonState.Pressed, Hiscores, null);
+            Mouse.ListenOn(mainMenuButtons[4], MouseButton.Left, ButtonState.Pressed, ConfirmExit, null);
         }
         else
         {
@@ -219,13 +219,11 @@ public class autopeli : PhysicsGame
             mainMenuButtons[2].TextColor = Color.Gray;
             Mouse.ListenOn(mainMenuButtons[0], MouseButton.Left, ButtonState.Pressed, DifficultyMenu, null);
             Mouse.ListenOn(mainMenuButtons[1], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
-            Mouse.ListenOn(mainMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
-            Mouse.ListenOn(mainMenuButtons[3], MouseButton.Left, ButtonState.Pressed, ConfirmExit, null);
+            Mouse.ListenOn(mainMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LoadMenu, null);
+            Mouse.ListenOn(mainMenuButtons[3], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
+            Mouse.ListenOn(mainMenuButtons[4], MouseButton.Left, ButtonState.Pressed, ConfirmExit, null);
         }
     }
-
-
-
 
 
     public void DifficultyMenu()
@@ -1083,7 +1081,7 @@ public class autopeli : PhysicsGame
         if (gamePassed && difficulty == "standard" && firstCompletion)
         {
             gameFullyUnlocked = true;
-            SaveCompletion();
+            SaveUnlocks();
         }
         if (difficulty == "endurance")
         {
@@ -1546,70 +1544,80 @@ public class autopeli : PhysicsGame
 
 
 
+    public void CreateSound(string soundFileName)
+    {
+        SoundEffect sound = LoadSoundEffect(soundFileName);
+        sound.Play();
+    }
+
+    public Label UpdateButton(Color hilightColor, double sizeMultiplier = 1)
+    {
+        Label button = new Label();
+        button.TextColor = hilightColor;
+        button.TextScale = new Vector(sizeMultiplier, sizeMultiplier);
+        return button;
+    }
+
 
     private void OpeningMenuMovement(List<Label> openingMenuButtons)
     {
-        bool juhe = true;
+        bool mouseNotOnButton = true;
 
         foreach (Label button in openingMenuButtons)
         {
             if (Mouse.IsCursorOn(button))
             {
-                juhe = false;
+                mouseNotOnButton = false;
 
-                if (!stefu)
+                if (!soundPlayed)
                 {
-                    stefu = true;
-                    SoundEffect hover = LoadSoundEffect("hover");
-                    hover.Play();
+                    CreateSound("hover");
+                    soundPlayed = true;
                 }
 
-                button.TextColor = Color.Gold;
-                button.TextScale = new Vector(1.05, 1.05);
+                UpdateButton(Color.Gold, 1.05);
             }
             else
             {
-                button.TextColor = Color.White;
-                button.TextScale = new Vector(1, 1);
+                UpdateButton(Color.White);
             }
         }
 
-        if (juhe) stefu = false;
+        if (mouseNotOnButton) soundPlayed = false;
     }
 
 
     private void LoadMenuMovement(List<Label> profileLabels)
     {
-        bool juhe = true;
+        bool mouseNotOnButton = true;
 
         for (int i = 0; i < 5; i++)
         {
             if (Mouse.IsCursorOn(profileLabels[i]) && DataStorage.Exists($"player{i}"))
             {
-                juhe = false;
+                mouseNotOnButton = false;
 
-                if (!stefu)
+                if (!soundPlayed)
                 {
-                    stefu = true;
-                    SoundEffect hover = LoadSoundEffect("hover");
-                    hover.Play();
+                    CreateSound("hover");
+                    soundPlayed = true;
                 }
 
-                profileLabels[i].TextColor = Color.Red;
+                UpdateButton(Color.Red);
             }
             else
             {
-                profileLabels[i].TextColor = Color.Black;
+                UpdateButton(Color.Black);
             }
         }
 
-        if (juhe) stefu = false;
+        if (mouseNotOnButton) soundPlayed = false;
     }
 
 
     public void MainMenuMovement(Label[] mainMenuButtons)
     {
-        bool juhe = true;
+        bool mouseNotOnButton = true;
 
         if (gameFullyUnlocked)
         {
@@ -1617,26 +1625,23 @@ public class autopeli : PhysicsGame
             {
                 if (Mouse.IsCursorOn(button))
                 {
-                    juhe = false;
+                    mouseNotOnButton = false;
 
-                    if (!stefu)
+                    if (!soundPlayed)
                     {
-                        stefu = true;
-                        SoundEffect hover = LoadSoundEffect("hover");
-                        hover.Play();
+                        CreateSound("hover");
+                        soundPlayed = true;
                     }
 
-                    button.TextColor = Color.Gold;
-                    button.TextScale = new Vector(1.05, 1.05);
+                    UpdateButton(Color.Gold, 1.05);
                 }
                 else
                 {
-                    button.TextColor = Color.White;
-                    button.TextScale = new Vector(1, 1);
+                    UpdateButton(Color.White);
                 }
             }
 
-            if (juhe) stefu = false;
+            if (mouseNotOnButton) soundPlayed = false;
         }
         else
         {
@@ -1644,50 +1649,44 @@ public class autopeli : PhysicsGame
             {
                 if (Mouse.IsCursorOn(mainMenuButtons[i]))
                 {
-                    juhe = false;
-
-                    if (!stefu)
+                    mouseNotOnButton = false;
+                     
+                    if (!soundPlayed)
                     {
-                        stefu = true;
-                        SoundEffect hover = LoadSoundEffect("hover");
-                        hover.Play();
+                        CreateSound("hover");
+                        soundPlayed = true;
                     }
 
-                    mainMenuButtons[i].TextColor = Color.Gold;
-                    mainMenuButtons[i].TextScale = new Vector(1.05, 1.05);
+                    UpdateButton(Color.Gold, 1.05);
                 }
                 else
                 {
-                    mainMenuButtons[i].TextColor = Color.White;
-                    mainMenuButtons[i].TextScale = new Vector(1, 1);
+                    UpdateButton(Color.White);
                 }
             }
 
-            if (juhe) stefu = false;
+            if (mouseNotOnButton) soundPlayed = false;
         }
     }
 
 
     public void DifficultyMenuMovement(List<Label> difficultyMenuButtons, List<Color> buttonColors, List<string> descriptions)
     {
-        bool juhe = true;
+        bool mouseNotOnButton = true;
 
         for (int i = 0; i < difficultyMenuButtons.Count; i++)
         {
             if (Mouse.IsCursorOn(difficultyMenuButtons[i]))
             {
-                juhe = false;
+                mouseNotOnButton = false;
 
-                if (!stefu)
+                if (!soundPlayed)
                 {
-                    stefu = true;
-                    SoundEffect hover = LoadSoundEffect("hover");
-                    hover.Play();
+                    CreateSound("hover");
+                    soundPlayed = true;
                 }
 
-                difficultyMenuButtons[i].TextColor = buttonColors[i];
-                difficultyMenuButtons[i].TextScale = new Vector(1.2, 1.2);
-                difficultyMenuButtons[i].BorderColor = buttonColors[i];
+                UpdateButton(buttonColors[i], 1.2);
 
                 if (!descriptionExists)
                 {
@@ -1698,9 +1697,7 @@ public class autopeli : PhysicsGame
             }
             else
             {
-                difficultyMenuButtons[i].TextColor = Color.White;
-                difficultyMenuButtons[i].TextScale = new Vector(1.1, 1.1);
-                difficultyMenuButtons[i].BorderColor = Color.Transparent;
+                UpdateButton(Color.White, 1.1);
 
                 if (descriptionExists)
                 {
@@ -1709,7 +1706,7 @@ public class autopeli : PhysicsGame
                 }
             }
 
-            if (juhe) stefu = false;
+            if (mouseNotOnButton) soundPlayed = false;
         }
     }
 
@@ -1720,8 +1717,7 @@ public class autopeli : PhysicsGame
         {
             if (Mouse.IsCursorOn(carList[i]))
             {
-                SoundEffect hover = LoadSoundEffect("hover");
-                hover.Play();
+                CreateSound("hover");
 
                 CarLabelChange(carList, i);
                 foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = true;
@@ -1760,16 +1756,13 @@ public class autopeli : PhysicsGame
         {
             if (Mouse.IsCursorOn(endMenuButtons[i]))
             {
-                SoundEffect hover = LoadSoundEffect("hover");
-                hover.Play();
+                CreateSound("hover");
 
-                endMenuButtons[i].TextColor = Color.Gold;
-                endMenuButtons[i].TextScale = new Vector(1.1, 1.1);
+                UpdateButton(Color.Gold, 1.05);
             }
             else
             {
-                endMenuButtons[i].TextColor = Color.White;
-                endMenuButtons[i].TextScale = new Vector(1, 1);
+                UpdateButton(Color.White);
             }
         }
     }
