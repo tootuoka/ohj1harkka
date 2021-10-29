@@ -1621,27 +1621,29 @@ public class autopeli : PhysicsGame
 
         if (gameFullyUnlocked)
         {
-            for (int i = 0; i < mainMenuButtons.Length; i++)
-            {
-                if (Mouse.IsCursorOn(mainMenuButtons[i]))
-                {
-                    mouseNotOnButton = false;
+            //HandleButtons(mainMenuButtons);
 
-                    if (!soundPlayed)
-                    {
-                        CreateSound("hover");
-                        soundPlayed = true;
-                    }
+            //for (int i = 0; i < mainMenuButtons.Length; i++)
+            //{
+            //    if (Mouse.IsCursorOn(mainMenuButtons[i]))
+            //    {
+            //        mouseNotOnButton = false;
 
-                    mainMenuButtons[i] = UpdateLabel(Color.Gold, 1.05);
-                }
-                else
-                {
-                    mainMenuButtons[i] = UpdateLabel(Color.White);
-                }
-            }
+            //        if (!soundPlayed)
+            //        {
+            //            CreateSound("hover");
+            //            soundPlayed = true;
+            //        }
 
-            if (mouseNotOnButton) soundPlayed = false;
+            //        mainMenuButtons[i] = UpdateLabel(Color.Gold, 1.05);
+            //    }
+            //    else
+            //    {
+            //        mainMenuButtons[i] = UpdateLabel(Color.White);
+            //    }
+            //}
+
+            //if (mouseNotOnButton) soundPlayed = false;
         }
         else
         {
@@ -1668,6 +1670,35 @@ public class autopeli : PhysicsGame
             if (mouseNotOnButton) soundPlayed = false;
         }
     }
+
+
+    private void HandleButtons(List<Label> buttons)
+    {
+        bool mouseNotOnButton = true;
+
+        for (int i = 0; i < buttons.Count; i++)
+        {
+            if (Mouse.IsCursorOn(buttons[i]))
+            {
+                mouseNotOnButton = false;
+
+                if (!soundPlayed)
+                {
+                    CreateSound("hover");
+                    soundPlayed = true;
+                }
+
+                buttons[i] = UpdateLabel(Color.Gold, 1.05);
+            }
+            else
+            {
+                buttons[i] = UpdateLabel(Color.White);
+            }
+        }
+
+        if (mouseNotOnButton) soundPlayed = false;
+    }
+
 
 
     public void DifficultyMenuMovement(List<Label> difficultyMenuButtons, List<Color> buttonColors, List<string> descriptions)
