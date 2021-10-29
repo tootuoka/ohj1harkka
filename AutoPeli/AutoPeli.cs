@@ -1621,6 +1621,13 @@ public class autopeli : PhysicsGame
 
         if (gameFullyUnlocked)
         {
+
+            HandleButton(mainMenuButtons[0]);
+            HandleButton(mainMenuButtons[1]);
+            HandleButton(mainMenuButtons[2]);
+            HandleButton(mainMenuButtons[3]);
+            HandleButton(mainMenuButtons[4]);
+
             //HandleButtons(mainMenuButtons);
 
             //for (int i = 0; i < mainMenuButtons.Length; i++)
@@ -1672,28 +1679,25 @@ public class autopeli : PhysicsGame
     }
 
 
-    private void HandleButtons(List<Label> buttons)
+    private void HandleButton(Label button)
     {
         bool mouseNotOnButton = true;
 
-        for (int i = 0; i < buttons.Count; i++)
+        if (Mouse.IsCursorOn(button))
         {
-            if (Mouse.IsCursorOn(buttons[i]))
-            {
-                mouseNotOnButton = false;
+            mouseNotOnButton = false;
 
-                if (!soundPlayed)
-                {
-                    CreateSound("hover");
-                    soundPlayed = true;
-                }
-
-                buttons[i] = UpdateLabel(Color.Gold, 1.05);
-            }
-            else
+            if (!soundPlayed)
             {
-                buttons[i] = UpdateLabel(Color.White);
+                CreateSound("hover");
+                soundPlayed = true;
             }
+
+            button = UpdateLabel(Color.Gold, 1.05);
+        }
+        else
+        {
+            button = UpdateLabel(Color.White);
         }
 
         if (mouseNotOnButton) soundPlayed = false;
