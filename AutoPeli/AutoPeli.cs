@@ -81,7 +81,7 @@ public class autopeli : PhysicsGame
 
     public override void Begin()
     {
-        profiles = new string[5] { "Empty", "Empty", "Empty", "Empty", "Empty" };
+        profiles = new string[5] { "*empty*", "*empty*", "*empty*", "*empty*", "*empty*" };
         hiscores = DataStorage.TryLoad<ScoreList>(hiscores, "hiscores.xml");
         OpeningMenu();
 
@@ -1507,6 +1507,7 @@ public class autopeli : PhysicsGame
 
                 profiles[i] = playerName;
                 DataStorage.Save<string[]>(profiles, "profiles.xml");
+                return;
             }
         }
     }
