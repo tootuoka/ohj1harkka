@@ -82,15 +82,14 @@ public class autopeli : PhysicsGame
     public override void Begin()
     {
         profiles = new string[5] { "Empty", "Empty", "Empty", "Empty", "Empty" };
-        OpeningMenu();
         hiscores = DataStorage.TryLoad<ScoreList>(hiscores, "hiscores.xml");
-        profiles = DataStorage.TryLoad<string[]>(profiles, "profiles.xml");
+        OpeningMenu();
+
     }
 
 
     private void OpeningMenu()
     {
-
         List<Label> openingMenuButtons = new List<Label>() { CreateLabel("Continue", Color.Gray, y: 40), CreateLabel("New Profile", Color.White, y: 0), CreateLabel("Load Profile", Color.White, y: -40) };
         foreach (Label button in openingMenuButtons) Add(button, -1);
 
@@ -112,8 +111,7 @@ public class autopeli : PhysicsGame
 
         InputWindow nameQuery = new InputWindow("Player Name: ");
         nameQuery.TextEntered += delegate { playerName = nameQuery.InputBox.Text; };
-        SavePlayer(playerName);
-        nameQuery.Closed += delegate { MainMenu(playerName); };
+        nameQuery.Closed += delegate { SavePlayer(playerName); MainMenu(playerName); };
         Add(nameQuery);
     }
 
