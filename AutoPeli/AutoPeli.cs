@@ -1212,8 +1212,8 @@ public class autopeli : PhysicsGame
 
     public void DisplayUnlockMessage()
     {
+        SaveCompletion();
         firstCompletion = false;
-        DataStorage.Save<bool>(firstCompletion, "notFirst.xml");
 
         Label unlocks = CreateLabel("You have beaten arcade mode and unlocked new content!", new Color(0.0, 1.0, 0.0), scale: 0.7);
         unlocks.LifetimeLeft = TimeSpan.FromSeconds(5);
@@ -1550,7 +1550,7 @@ public class autopeli : PhysicsGame
         sound.Play();
     }
 
-    public Label UpdateButton(Color hilightColor, double sizeMultiplier = 1)
+    public Label UpdateLabel(Color hilightColor, double sizeMultiplier = 1)
     {
         Label button = new Label();
         button.TextColor = hilightColor;
@@ -1575,11 +1575,11 @@ public class autopeli : PhysicsGame
                     soundPlayed = true;
                 }
 
-                UpdateButton(Color.Gold, 1.05);
+                UpdateLabel(Color.Gold, 1.05);
             }
             else
             {
-                UpdateButton(Color.White);
+                UpdateLabel(Color.White);
             }
         }
 
@@ -1603,11 +1603,11 @@ public class autopeli : PhysicsGame
                     soundPlayed = true;
                 }
 
-                UpdateButton(Color.Red);
+                UpdateLabel(Color.Red);
             }
             else
             {
-                UpdateButton(Color.Black);
+                UpdateLabel(Color.Black);
             }
         }
 
@@ -1621,9 +1621,9 @@ public class autopeli : PhysicsGame
 
         if (gameFullyUnlocked)
         {
-            foreach (Label button in mainMenuButtons)
+            for (int i = 0; i < mainMenuButtons.Length; i++)
             {
-                if (Mouse.IsCursorOn(button))
+                if (Mouse.IsCursorOn(mainMenuButtons[i]))
                 {
                     mouseNotOnButton = false;
 
@@ -1633,11 +1633,11 @@ public class autopeli : PhysicsGame
                         soundPlayed = true;
                     }
 
-                    UpdateButton(Color.Gold, 1.05);
+                    mainMenuButtons[i] = UpdateLabel(Color.Gold, 1.05);
                 }
                 else
                 {
-                    UpdateButton(Color.White);
+                    mainMenuButtons[i] = UpdateLabel(Color.White);
                 }
             }
 
@@ -1657,11 +1657,11 @@ public class autopeli : PhysicsGame
                         soundPlayed = true;
                     }
 
-                    UpdateButton(Color.Gold, 1.05);
+                    UpdateLabel(Color.Gold, 1.05);
                 }
                 else
                 {
-                    UpdateButton(Color.White);
+                    UpdateLabel(Color.White);
                 }
             }
 
@@ -1686,7 +1686,7 @@ public class autopeli : PhysicsGame
                     soundPlayed = true;
                 }
 
-                UpdateButton(buttonColors[i], 1.2);
+                UpdateLabel(buttonColors[i], 1.2);
 
                 if (!descriptionExists)
                 {
@@ -1697,7 +1697,7 @@ public class autopeli : PhysicsGame
             }
             else
             {
-                UpdateButton(Color.White, 1.1);
+                UpdateLabel(Color.White, 1.1);
 
                 if (descriptionExists)
                 {
@@ -1758,11 +1758,11 @@ public class autopeli : PhysicsGame
             {
                 CreateSound("hover");
 
-                UpdateButton(Color.Gold, 1.05);
+                UpdateLabel(Color.Gold, 1.05);
             }
             else
             {
-                UpdateButton(Color.White);
+                UpdateLabel(Color.White);
             }
         }
     }
