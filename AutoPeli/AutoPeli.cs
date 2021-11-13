@@ -1,76 +1,76 @@
 using Jypeli;
 using Jypeli.Assets;
-using Jypeli.Controls;
 using Jypeli.Widgets;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 
 public class autopeli : PhysicsGame
 {
-    private Vector gameSpeed;
-    private Vector[] playerMovements;
+    // Preloaded constants    
+    private readonly List<Image> OBSTACLES = new List<Image>()
+    {
+        LoadImage("obstacle_1"), LoadImage("obstacle_2"), LoadImage("obstacle_3"),
+        LoadImage("obstacle_4"), LoadImage("obstacle_5")
+    };
 
-    private string car;
-    private string difficulty;
-    [Save] private string[] profiles = new string[5] { "*Empty*", "*Empty*", "*Empty*", "*Empty*", "*Empty*" };
+    // Profile and score variables
+    [Save] private ScoreList hiscores = new ScoreList(15, false, 0);
+    [Save] private string[] profiles = new string[5] { "---", "---", "---", "---", "---" };
     [Save] private string playerName;
-    private double durabilityMultiplier;
-    private double consumptionMultiplier;
+    private int currentSaveFile;
+    
+    // Profile and game status truth values
     private bool finishlineSpawned;
     private bool gameIsOn;
     private bool gamePassed;
-    [Save] private bool gameFullyUnlocked = true;
     [Save] private bool firstCompletion = true;
+    [Save] private bool gameFullyUnlocked = true;
 
-    private readonly int saveSlots = 5;
+    // In game physics objects and variables
+    private string difficulty;
+    private string car;
+    private PhysicsObject player;
+    private List<PhysicsObject> startItems;
+    private List<PhysicsObject> addedItems;
+    private PhysicsObject finishline;
+    private Surface[] railings;
 
+    // In game movements
+    private Vector gameSpeed;
+    private Vector[] playerMovements;
+
+    // Unique vehicle properties and difficulty multipliers
+    private double[,] carDimensions;
+    private double resistanceMultiplier;
+    private double consumptionMultiplier;
     private double[] zoneMultipliers;
 
-    private List<Image> carConditions;
-
+    // In game Timers
     private List<Timer> gameTimers;
     private List<Timer> zoneTimers;
 
-    private GameObject pointMultiplierUI;
+    // Player UI variables
+    private Label healthMeter;
+    private Label fuelMeter;
+    private Label pointMeter;
+    private GameObject pointMultiplierDisplay;
+    private DoubleMeter healthRemaining;
+    private DoubleMeter fuelRemaining;
+    private DoubleMeter distanceRemaining;
+    private DoubleMeter pointTotal;
+    private IntMeter pointMultiplier;
+    private ProgressBar healthBar;
+    private ProgressBar fuelBar;
 
-    private List<GameObject> carList;
-    private List<Label> carNameList;
-
-    private Label[][] propertiesOfAllCars;
-
+    // Car selection display variables
+    private List<Label> titlesOfAvailableCars;
+    private List<GameObject> availableCars;
+    private Label[][] propertyLabelsOfAllAvailableCars;
     private List<GameObject[][]> allStars;
     private List<int[][]> allActiveStars;
 
-    private List <PhysicsObject> objectGroup;
-    private List<PhysicsObject> startItems;
-
-    private PhysicsObject player;
-    private PhysicsObject finishline;
-
-    private DoubleMeter healthRemaining;
-    private Label healthMeter;
-    private ProgressBar healthBar;
-
-    private DoubleMeter distanceRemaining;
-    private Label distanceMeter;
-    private Timer distanceHelpTimer;
-
-    private DoubleMeter fuelRemaining;
-    private Label fuelMeter;
-    private ProgressBar fuelBar;
-    private Timer fuelHelpTimer;
-
-    private IntMeter pointMultiplier;
-
-    private DoubleMeter pointTotal;
-    private Label pointMeter;
-    private Timer pointHelpTimer;
-
-    private Surface[] railings;
-
-    [Save] private ScoreList hiscores = new ScoreList(15, false, 0);
+    // Menu sound effect variables
     private bool soundPlayed = false;
     private bool mouseOnButton = false;
 
@@ -82,49 +82,119 @@ public class autopeli : PhysicsGame
 
         for (int i = 0; i < profiles.Length; i++)
         {
-            if (DataStorage.Exists($"player{i}.xml") == false)
+            if (DataStorage.Exists($"player{i + 1}.xml") == false)
             {
-                profiles[i] = "*Empty*";
+                profiles[i] = "---";
                 DataStorage.Save<string[]>(profiles, "profiles.xml");
             }
         }
 
-        Level.BackgroundColor = Color.Gray;
         OpeningMenu();
     }
     
 
     private void OpeningMenu()
     {
-        List<Label> openingMenuButtons = new List<Label>() { CreateLabel("Continue", Color.Gray, y: 40), CreateLabel("New Profile", Color.White, y: 0), CreateLabel("Load Profile", Color.White, y: -40) };
+        ClearAll();
+
+        AddBackgroundMusic("OST");
+
+        Level.Background.Image = LoadImage("IMG_opening");
+        Level.Background.FitToLevel();
+
+        GameObject avatarShadowLining = new GameObject(155, 155, Shape.Circle, Screen.Left + 110, Screen.Top - 95);
+        avatarShadowLining.Color = new Color(255, 255, 150);
+        Add(avatarShadowLining);
+
+        GameObject avatarShadowBase = new GameObject(150, 150, Shape.Circle, Screen.Left + 110, Screen.Top - 95);
+        avatarShadowBase.Color = new Color(100, 100, 100);
+        Add(avatarShadowBase, 0);
+
+        GameObject jKing = new GameObject(120, 120);
+        jKing.Position = avatarShadowBase.Position + new Vector(-5, 10);
+        jKing.Image = LoadImage("jKing");
+        Add(jKing, 1);
+
+        GameObject hunt4iSW = new GameObject(150, 75);
+        hunt4iSW.Position = avatarShadowBase.Position + new Vector(-5, -50);
+        hunt4iSW.Image = LoadImage("hunt4iSW");
+        hunt4iSW.Angle = Angle.FromDegrees(10);
+        Add(hunt4iSW, 2);
+
+        GameObject shadow = new GameObject(180, 200);
+        shadow.Color = new Color(0, 0, 0, 0.75);
+        Add(shadow, -2);
+
+        List<Label> openingMenuButtons = new List<Label>() { CreateLabel("Continue", Color.Gray, y: 50), CreateLabel("New Profile", Color.Gray, y: 0), CreateLabel("Load Profile", Color.Gray, y: -50) };
         foreach (Label button in openingMenuButtons) Add(button, -1);
 
+        Mouse.ListenMovement(1, OpeningMenuMovement, null, openingMenuButtons);
+
+        int lastUsedProfileSlot = 0;
         if (DataStorage.Exists("lastUsedProfile.xml"))
         {
+            for (int i = 0; i < profiles.Length; i++)
+            {
+                if (DataStorage.TryLoad<string>(playerName, "lastUsedProfile.xml") == DataStorage.TryLoad<string>(playerName, $"player{i + 1}.xml")) lastUsedProfileSlot = i;
+            }
+
             openingMenuButtons[0].TextColor = Color.White;
-            Mouse.ListenOn(openingMenuButtons[0], MouseButton.Left, ButtonState.Pressed, MainMenu, null, DataStorage.TryLoad<string>(playerName, "lastUsedProfile.xml"));
+            Mouse.ListenOn(openingMenuButtons[0], MouseButton.Left, ButtonState.Pressed, LoadProfile, null, lastUsedProfileSlot);
         }
 
-        Mouse.ListenMovement(1, OpeningMenuMovement, null, openingMenuButtons);
-        Mouse.ListenOn(openingMenuButtons[1], MouseButton.Left, ButtonState.Pressed, NewProfile, null);
-        Mouse.ListenOn(openingMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LoadMenu, null);
+        for (int i = 0; i < profiles.Length; i++)
+        {
+            if (profiles[i] == "---")
+            {
+                openingMenuButtons[1].TextColor = Color.White;
+                Mouse.ListenOn(openingMenuButtons[1], MouseButton.Left, ButtonState.Pressed, NewProfile, null);
+                break;
+            }
+        }
+
+        for (int i = 0; i < profiles.Length; i++)
+        {
+            if (DataStorage.Exists($"player{i + 1}.xml"))
+            {
+                openingMenuButtons[2].TextColor = Color.White;
+                Mouse.ListenOn(openingMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LoadMenu, null);
+                break;
+            }
+        }
     }
 
 
     public void NewProfile()
     {
+        CreateSound("selected");
+
         ClearAll();
 
+        Level.Background.CreateGradient(Color.LightGreen, new Color(30, 30, 30));
+
         InputWindow nameQuery = new InputWindow("Player Name: ");
-        nameQuery.TextEntered += delegate { playerName = nameQuery.InputBox.Text; };
-        nameQuery.Closed += delegate { if (playerName.Trim().Length > 1) { SavePlayer(playerName); MainMenu(playerName); } else NewProfile(); };
         Add(nameQuery);
+
+        nameQuery.TextEntered += delegate { playerName = nameQuery.InputBox.Text; };
+        
+        nameQuery.Closed += delegate
+        {
+            if (playerName.Trim().Length > 1 && playerName.Trim().Length < 14)
+            {
+                SavePlayer(playerName);
+                MainMenu(playerName);
+            }
+            else NewProfile();
+        };
     }
 
 
     private void LoadMenu()
     {
         ClearAll();
+        FormatSounds();
+
+        Level.Background.CreateGradient(Color.LightPink, new Color(30, 30, 30));
 
         List<Label> profileLabels = new List<Label>();
 
@@ -134,56 +204,72 @@ public class autopeli : PhysicsGame
             profileLabel.Y = y;
             profileLabels.Add(profileLabel);
 
-            if (DataStorage.Exists($"player{i}.xml"))
+            if (DataStorage.Exists($"player{i + 1}.xml"))
             {
                 Mouse.ListenOn(profileLabels[i], MouseButton.Left, ButtonState.Pressed, LoadProfile, null, i);
             }
 
-            Add(profileLabels[i]);
+            Add(profileLabels[i], 1);
         }
+
+        Label[] specialKeys = new Label[2] { CreateLabel("Press  \"MouseRight\"  to return", Color.Black, y: -320, scale: 0.8), CreateLabel("Press  \"MouseMiddle\"  to delete", Color.Black, y: -340, scale: 0.8) };
+        foreach (Label key in specialKeys) Add(key);
 
         Mouse.ListenMovement(1, LoadMenuMovement, null, profileLabels);
-        Mouse.ListenOn(Key.Delete, ButtonState.Pressed, DeleteProfile, null);
-    }
+        
+        if (playerName == null) Mouse.Listen(MouseButton.Right, ButtonState.Pressed, OpeningMenu, null);
+        else Mouse.Listen(MouseButton.Right, ButtonState.Pressed, MainMenu, null, playerName);
 
-
-    private void DeleteProfile()
-    {
-        // TODO: sex
-    }
-
-
-    private void LoadProfile(int profileSlot)
-    {
-        switch (profileSlot)
+        for (int i = 0; i < profileLabels.Count; i++)
         {
-            case 0:
-                playerName = DataStorage.TryLoad<string>(playerName, $"player{0}.xml");
-                gameFullyUnlocked = DataStorage.TryLoad<bool>(gameFullyUnlocked, $"unlocks{0}.xml");
-                firstCompletion = DataStorage.TryLoad<bool>(firstCompletion, $"completion{0}.xml");
-                break;
-            case 1:
-                playerName = DataStorage.TryLoad<string>(playerName, $"player{1}.xml");
-                gameFullyUnlocked = DataStorage.TryLoad<bool>(gameFullyUnlocked, $"unlocks{1}.xml");
-                firstCompletion = DataStorage.TryLoad<bool>(firstCompletion, $"completion{1}.xml");
-                break;
-            case 2:
-                playerName = DataStorage.TryLoad<string>(playerName, $"player{2}.xml");
-                gameFullyUnlocked = DataStorage.TryLoad<bool>(gameFullyUnlocked, $"unlocks{2}.xml");
-                firstCompletion = DataStorage.TryLoad<bool>(firstCompletion, $"completion{2}.xml");
-                break;
-            case 3:
-                playerName = DataStorage.TryLoad<string>(playerName, $"player{3}.xml");
-                gameFullyUnlocked = DataStorage.TryLoad<bool>(gameFullyUnlocked, $"unlocks{3}.xml");
-                firstCompletion = DataStorage.TryLoad<bool>(firstCompletion, $"completion{3}.xml");
-                break;
-            case 4:
-                playerName = DataStorage.TryLoad<string>(playerName, $"player{4}.xml");
-                gameFullyUnlocked = DataStorage.TryLoad<bool>(gameFullyUnlocked, $"unlocks{4}.xml");
-                firstCompletion = DataStorage.TryLoad<bool>(firstCompletion, $"completion{4}.xml");
-                break;
+            if (profiles[i] != "---") Mouse.ListenOn(profileLabels[i], MouseButton.Middle, ButtonState.Pressed, DeleteMenu, null, i);
+        }
+    }
+
+
+    private void DeleteMenu(int profileIndex)
+    {
+        CreateSound("selected");
+
+        GameObject shadow = new GameObject(400, 250);
+        shadow.Color = new Color(0, 0, 0, 0.75);
+        Add(shadow, 2);
+
+        Label confirmPrompt = CreateLabel("Do you really wish to delete this profile?", Color.Red, y: 60, scale: 0.85);
+        Add(confirmPrompt, 3);
+
+        Label[] options = new Label[2] { CreateLabel("Press  \"Y\"  to continue", Color.White, y: 0), CreateLabel("Press  \"N\"  to cancel", Color.White, y: -40) };
+        foreach (Label option in options) Add(option, 3);
+
+        Keyboard.Listen(Key.Y, ButtonState.Pressed, DeleteProfile, null, profileIndex);
+        Keyboard.Listen(Key.N, ButtonState.Pressed, LoadMenu, null);
+    }
+
+
+    private void DeleteProfile(int profileIndex)
+    {
+        if (DataStorage.TryLoad<string>(playerName, "lastUsedProfile.xml") == DataStorage.TryLoad<string>(playerName, $"player{profileIndex + 1}.xml"))
+        {
+            DataStorage.Delete("lastUsedProfile.xml");
+            playerName = null;
         }
 
+        DataStorage.Delete($"player{profileIndex + 1}.xml");
+        DataStorage.Delete($"completion{profileIndex + 1}.xml");
+        DataStorage.Delete($"unlocks{profileIndex + 1}.xml");
+        profiles[profileIndex] = "---";
+        DataStorage.Save<string[]>(profiles, "profiles.xml");
+        LoadMenu();
+    }
+
+
+    private void LoadProfile(int profileIndex)
+    {
+        currentSaveFile = profileIndex + 1;
+
+        playerName = DataStorage.TryLoad<string>(playerName, $"player{currentSaveFile}.xml");
+        gameFullyUnlocked = DataStorage.TryLoad<bool>(gameFullyUnlocked, $"unlocks{currentSaveFile}.xml");
+        firstCompletion = DataStorage.TryLoad<bool>(firstCompletion, $"completion{currentSaveFile}.xml");
         MainMenu(playerName);
     }
 
@@ -192,18 +278,17 @@ public class autopeli : PhysicsGame
     {
         DataStorage.Save<string>(playerName, "lastUsedProfile.xml");
 
-        SoundEffect buttonClicked = LoadSoundEffect("selected");
-        buttonClicked.Play();
-
         ClearAll();
+        FormatSounds();
 
-        Level.Background.Image = LoadImage("mainmenu_bgimg");
+        Level.Background.Image = LoadImage("IMG_main");
+        Level.Background.ScaleToLevelByWidth();
 
-        Label mainMenuTitle = CreateLabel("MAIN MENU", Color.White, y: 200, scale: 1.2);
+        Label mainMenuTitle = CreateLabel("MAIN MENU", Color.White, y: 300, scale: 1.4);
         mainMenuTitle.BorderColor = Color.White;
         Add(mainMenuTitle);
 
-        Label playerIndicator = CreateLabel($"Player: {player}", Color.Gray, -220, 255, 0.5);
+        Label playerIndicator = CreateLabel($"player: {player}", Color.Gray, Screen.Left + 80, Screen.Top - 30, 0.5);
         Add(playerIndicator, 1);
 
         Label[] mainMenuButtons = new Label[5] { CreateLabel("Arcade Mode", Color.White, y: 70.0), CreateLabel("Endurance Mode", Color.White, y: 35.0), CreateLabel("Load Profile", Color.White, y: 0), CreateLabel("Hiscores", Color.White, y: -35.0), CreateLabel("Exit", Color.White, y: -70.0) };
@@ -215,7 +300,6 @@ public class autopeli : PhysicsGame
             unlock.Timeout += delegate { if (firstCompletion) DisplayUnlockMessage(); };
             unlock.Start(1);
 
-            //AddBackgroundMusic("menu_cmpl");
             Mouse.ListenMovement(1, MainMenuMovement, null, mainMenuButtons);
             Mouse.ListenOn(mainMenuButtons[0], MouseButton.Left, ButtonState.Pressed, DifficultyMenu, null);
             Mouse.ListenOn(mainMenuButtons[1], MouseButton.Left, ButtonState.Pressed, CarMenu, null, "endurance");
@@ -225,7 +309,6 @@ public class autopeli : PhysicsGame
         }
         else
         {
-            //AddBackgroundMusic("menu_orig");
             Mouse.ListenMovement(1, MainMenuMovement, null, mainMenuButtons);
             mainMenuButtons[1].TextColor = Color.Gray;
             mainMenuButtons[3].TextColor = Color.Gray;
@@ -240,34 +323,44 @@ public class autopeli : PhysicsGame
 
     public void DifficultyMenu()
     {
-        SoundEffect buttonClicked = LoadSoundEffect("selected");
-        buttonClicked.Play();
-
         ClearAll();
+        FormatSounds();
 
-        Label difficultyMenuTitle = CreateLabel("DIFFICULTY SELECTION", Color.White, y: 120, scale: 1.2);
-        Add(difficultyMenuTitle);
+        Level.Background.CreateGradient(Color.Orange, new Color(30, 30, 30));
+
+
+        GameObject shadow = new GameObject(180, 180);
+        shadow.Color = new Color(0, 0, 0, 0.75);
+        Add(shadow, 1);
+
+
+        Label difficultyMenuTitle = CreateLabel("Difficulty Selection", Color.White, y: 180, scale: 1.3);
+        Add(difficultyMenuTitle, 2);
 
         if (!gameFullyUnlocked)
         {
-            Label message = CreateLabel("(Complete the game on standard difficulty to unlock new content.)", Color.GreenYellow, y: -300, scale: 0.65);
+            Label message = CreateLabel("(Complete the game on standard difficulty to unlock new content.)", Color.Black, y: -300, scale: 0.65);
             Add(message);
         }
 
         List<Label> difficultyMenuButtons = new List<Label>()
         {
-            CreateLabel("Beginner", Color.White, y: 50.0, scale: 1.1),
-            CreateLabel("Standard", Color.White, scale: 1.1)
+            CreateLabel("Beginner", Color.White, y: 45.0),
+            CreateLabel("Standard", Color.White),
+            CreateLabel("Madness", Color.Gray, y: -45)
         };
 
         if (gameFullyUnlocked)
         {
-            difficultyMenuButtons.Add(CreateLabel("Madness", Color.White, y: -50, scale: 1.1));
+            difficultyMenuButtons[2].TextColor = Color.White;
             Mouse.ListenOn(difficultyMenuButtons[2], MouseButton.Left, ButtonState.Pressed, CarMenu, null, "madness");
         }
+        else Mouse.ListenOn(difficultyMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
+
         foreach (Label button in difficultyMenuButtons) Add(button);
 
         Mouse.ListenMovement(0.5, DifficultyMenuMovement, null, difficultyMenuButtons);
+        Mouse.Listen(MouseButton.Right, ButtonState.Pressed, MainMenu, null, playerName);
         Mouse.ListenOn(difficultyMenuButtons[0], MouseButton.Left, ButtonState.Pressed, CarMenu, null, "beginner");
         Mouse.ListenOn(difficultyMenuButtons[1], MouseButton.Left, ButtonState.Pressed, CarMenu, null, "standard");
     }
@@ -275,50 +368,58 @@ public class autopeli : PhysicsGame
 
     public void CarMenu(string selectedDifficulty)
     {
-        SoundEffect buttonClicked = LoadSoundEffect("selected");
-        buttonClicked.Play();
-
         ClearAll();
+        FormatSounds();
 
-        Label[] descriptions = new Label[4]
+        Level.Background.CreateGradient(Color.LightGreen, new Color(30, 30, 30));
+
+        GameObject shadow = new GameObject(305, 136, Shape.Rectangle, Screen.Left + 179, Screen.Bottom + 80);
+        shadow.Color = new Color(0, 0, 0, 0.75);
+        Add(shadow, 1);
+
+        Label[] descriptions = new Label[6]
         {
-        CreateLabel("MOB = mobility (directional maneuvering speed).", Color.Black, -333.6, -305, 0.6),
-        CreateLabel("DUR = durability (resistance against crashing damage).", Color.Black, -315, -320, 0.6),
-        CreateLabel("CON = consumption (conservation of fuel usage).", Color.Black, -331.4, -335, 0.6),
-        CreateLabel("CAP = capacity (size of fuel tank & refueling rate).", Color.Black, -331.5, -350, 0.6)
+        CreateLabel("SIZE = size (evasiveness of the vehicle).", Color.White, -365, -260, 0.6),
+        CreateLabel("MOB = mobility (directional maneuvering speed).", Color.White, -345, -278, 0.6),
+        CreateLabel("DUR = durability (overall constitution and healing rate).", Color.White, -328.5, -296, 0.6),
+        CreateLabel("RES = damage resistance (defence against crashing).", Color.White, -331.4, -314, 0.6),
+        CreateLabel("CAP = capacity (size of fuel tank & refueling rate).", Color.White, -339, -332, 0.6),
+        CreateLabel("CON = consumption (conservation of fuel usage).", Color.White, -343.6, -350, 0.6)
         };
 
-        foreach (Label description in descriptions) Add(description);
+        foreach (Label description in descriptions) Add(description, 2);
 
         difficulty = selectedDifficulty;
 
-        AddCarList();
+        AddCars();
         AddStars();
 
         Mouse.ListenMovement(1, CarMenuMovement, null);
+        Mouse.Listen(MouseButton.Right, ButtonState.Pressed, DifficultyMenu, null);
+        Mouse.ListenOn(availableCars[0], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Basic");
+        Mouse.ListenOn(availableCars[1], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Sports");
+        Mouse.ListenOn(availableCars[2], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Power");
 
-        Mouse.ListenOn(carList[0], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Basic");
-        Mouse.ListenOn(carList[1], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Sports");
-        Mouse.ListenOn(carList[2], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Power");
-        if (!gameFullyUnlocked)
+        if (gameFullyUnlocked)
         {
-            Mouse.ListenOn(carList[3], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
-            Mouse.ListenOn(carList[4], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
+            Mouse.ListenOn(availableCars[3], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Heavy");
+            Mouse.ListenOn(availableCars[4], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Super");
         }
         else
         {
-            Mouse.ListenOn(carList[3], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Heavy");
-            Mouse.ListenOn(carList[4], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Super");
+            Mouse.ListenOn(availableCars[3], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
+            Mouse.ListenOn(availableCars[4], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
         }
     }
 
 
     public void CreateStage(string selectedCar)
     {
-        SoundEffect buttonClicked = LoadSoundEffect("selected");
-        buttonClicked.Play();
+        CreateSound("selected");
 
         ClearAll();
+
+        Level.Background.CreateGradient(new Color(10, 10, 10), new Color(50, 50, 50));
 
         AddPlayer(selectedCar);
 
@@ -328,7 +429,7 @@ public class autopeli : PhysicsGame
 
         gameTimers = new List<Timer>();
         zoneTimers = new List<Timer>();
-        objectGroup = new List<PhysicsObject>();
+        addedItems = new List<PhysicsObject>();
 
         zoneMultipliers = new double[4] { 1, 1, 1, 1 };
 
@@ -353,14 +454,15 @@ public class autopeli : PhysicsGame
 
         CreateTrafficLight($"lights_-1");
 
-        Timer countdown = new Timer(1);
+        Timer countdown = new Timer(0.9);
+        countdown.Start(3);
+
         countdown.Timeout += delegate
         {
-            counter.Value++;
-            if (counter.Value < countdown.Interval * 4 && counter.Value > countdown.Interval * 0)
+            counter.Value += countdown.Interval;
+            if (countdown.Interval * 0 < counter.Value && counter.Value < countdown.Interval * 4)
             {
-                SoundEffect trafficLightTick = LoadSoundEffect($"lights{i}");
-                trafficLightTick.Play();
+                CreateSound($"lights{i}");
                 CreateTrafficLight($"lights_{i++}");
             }
             if (counter.Value == countdown.Interval * 3)
@@ -375,27 +477,27 @@ public class autopeli : PhysicsGame
                 {
                     case "beginner":
                         CreateObstacle(12.5, 30.0, 0.1, 1.2);
-                        CreateCollectible(collectibles[0], "fuel", "fuel_group", 1.5, 3.0);
-                        CreateCollectible(collectibles[1], "repairkit", "repairkit_group", 3.0, 6.0);
+                        CreateCollectible(collectibles[0], "fuel", "fuel_group", 2, 4);
+                        CreateCollectible(collectibles[1], "repairkit", "repairkit_group", 4, 6);
                         gameSpeed = new Vector(0, -250);
                         break;
                     case "standard":
                         CreateObstacle(12.5, 30.0, 0.05, 0.8);
-                        CreateCollectible(collectibles[0], "fuel", "fuel_group", 2.0, 4.0);
-                        CreateCollectible(collectibles[1], "repairkit", "repairkit_group", 6.0, 8.0);
-                        gameSpeed = new Vector(0, -300);
+                        CreateCollectible(collectibles[0], "fuel", "fuel_group", 3, 6);
+                        CreateCollectible(collectibles[1], "repairkit", "repairkit_group", 6, 9);
+                        gameSpeed = new Vector(0, -350);
                         break;
                     case "madness":
                         CreateObstacle(12.5, 30.0, 0.0, 0.4);
-                        CreateCollectible(collectibles[0], "fuel", "fuel_group", 2.5, 5.0);
-                        CreateCollectible(collectibles[1], "repairkit", "repairkit_group", 9.0, 10.0);
-                        gameSpeed = new Vector(0, -350);
+                        CreateCollectible(collectibles[0], "fuel", "fuel_group", 4, 8);
+                        CreateCollectible(collectibles[1], "repairkit", "repairkit_group", 8, 12);
+                        gameSpeed = new Vector(0, -500);
                         break;
                     case "endurance":
                         CreateObstacle(10.0, 30.0, 0.5, 2.0);
-                        CreateCollectible(collectibles[0], "fuel", "fuel_group", 2.0, 6.0);
-                        CreateCollectible(collectibles[1], "repairkit", "repairkit_group", 5.0, 10.0);
-                        CreateCollectible(collectibles[2], "coin", "coin_group", 3.0, 15.0);
+                        CreateCollectible(collectibles[0], "fuel", "fuel_group", 3, 4);
+                        CreateCollectible(collectibles[1], "repairkit", "repairkit_group", 5, 7);
+                        CreateCollectible(collectibles[2], "coin", "coin_group", 9, 11);
                         gameSpeed = new Vector(0, -200);
                         break;
                 }
@@ -403,25 +505,24 @@ public class autopeli : PhysicsGame
                 foreach (PhysicsObject item in startItems) item.Hit(gameSpeed * item.Mass);
             }
         };
-        countdown.Start(3);
     }
 
 
     private void IncreaseDistance()
     {
-        if (difficulty == "beginner") distanceRemaining.Value += 500;
-        else if (difficulty == "standard") distanceRemaining.Value += 1500;
-        else distanceRemaining.Value += 3000;
+        if (difficulty == "beginner") return;
+        else if (difficulty == "standard") distanceRemaining.Value += 2000;
+        else distanceRemaining.Value += 4000;
     }
 
 
     public void CreateTrafficLight(string imageName)
     {
-        GameObject trafficLight = new GameObject(90, 270);
+        GameObject trafficLight = new GameObject(60, 180);
         trafficLight.Image = LoadImage(imageName);
-        trafficLight.Y = 120;
+        trafficLight.Y = 180;
         trafficLight.Angle = Angle.FromDegrees(90);
-        trafficLight.LifetimeLeft = TimeSpan.FromSeconds(1);
+        trafficLight.LifetimeLeft = TimeSpan.FromSeconds(0.9);
         Add(trafficLight);
     }
 
@@ -429,6 +530,7 @@ public class autopeli : PhysicsGame
     public void AddPlayer(string selectedCar)
     {
         car = selectedCar;
+        List<Image> carConditions = new List<Image>();
 
         player = new PhysicsObject(40, 80);
         player.Shape = Shape.Rectangle;
@@ -438,63 +540,61 @@ public class autopeli : PhysicsGame
 
         playerMovements = new Vector[4];
 
-        // TODO: Fiksaa liikkuminen alussa
-
         switch (selectedCar)
         {
             case "car_Basic":
-                player.Width = 45;
-                player.Height = 90;
+                player.Width = carDimensions[0,0] / 2.3;
+                player.Height = carDimensions[1, 0] / 2.3;
                 player.Image = LoadImage("car1");
-                playerMovements = new Vector[4] { new Vector(0, 250), new Vector(0, -250), new Vector(-250, 0), new Vector(250, 0) };
-                healthRemaining = new DoubleMeter(300, 0, 300);
-                durabilityMultiplier = 1.2;
+                playerMovements = new Vector[4] { new Vector(0, 230), new Vector(0, -230), new Vector(-230, 0), new Vector(230, 0) };
+                healthRemaining = new DoubleMeter(280, 0, 280);
+                resistanceMultiplier = 1.1;
+                fuelRemaining = new DoubleMeter(150, 0, 150);
                 consumptionMultiplier = 1.3;
-                fuelRemaining = new DoubleMeter(110, 0, 110);
                 carConditions = new List<Image>() { LoadImage("car1_5"), LoadImage("car1_4"), LoadImage("car1_3"), LoadImage("car1_2"), LoadImage("car1_1"), LoadImage("car1") };
                 break;
             case "car_Sports":
-                player.Width = 40;
-                player.Height = 80;
+                player.Width = carDimensions[0, 1] / 2.4;
+                player.Height = carDimensions[1, 1] / 2.4;
                 player.Image = LoadImage("car2");
-                playerMovements = new Vector[4] { new Vector(0, 300), new Vector(0, -300), new Vector(-300, 0), new Vector(300, 0) };
-                healthRemaining = new DoubleMeter(220, 0, 220);
-                durabilityMultiplier = 1.0;
-                consumptionMultiplier = 1.0;
+                playerMovements = new Vector[4] { new Vector(0, 330), new Vector(0, -330), new Vector(-330, 0), new Vector(330, 0) };
+                healthRemaining = new DoubleMeter(250, 0, 250);
+                resistanceMultiplier = 0.9;
                 fuelRemaining = new DoubleMeter(70, 0, 70);
+                consumptionMultiplier = 1.1;
                 carConditions = new List<Image>() { LoadImage("car2_5"), LoadImage("car2_4"), LoadImage("car2_3"), LoadImage("car2_2"), LoadImage("car2_1"), LoadImage("car2") };
                 break;
             case "car_Power":
-                player.Width = 48;
-                player.Height = 96;
+                player.Width = carDimensions[0, 2] / 2.2;
+                player.Height = carDimensions[1, 2] / 2.2;
                 player.Image = LoadImage("car3");
-                playerMovements = new Vector[4] { new Vector(0, 200), new Vector(0, -200), new Vector(-200, 0), new Vector(200, 0) };
-                healthRemaining = new DoubleMeter(410, 0, 410);
-                durabilityMultiplier = 1.7;
+                playerMovements = new Vector[4] { new Vector(0, 270), new Vector(0, -270), new Vector(-270, 0), new Vector(270, 0) };
+                healthRemaining = new DoubleMeter(360, 0, 360);
+                resistanceMultiplier = 1.7;
+                fuelRemaining = new DoubleMeter(120, 0, 120);
                 consumptionMultiplier = 2.1;
-                fuelRemaining = new DoubleMeter(130, 0, 130);
                 carConditions = new List<Image>() { LoadImage("car3_5"), LoadImage("car3_4"), LoadImage("car3_3"), LoadImage("car3_2"), LoadImage("car3_1"), LoadImage("car3") };
                 break;
             case "car_Heavy":
-                player.Width = 52;
-                player.Height = 98;
+                player.Width = carDimensions[0, 3] / 2;
+                player.Height = carDimensions[1, 3] / 2;
                 player.Image = LoadImage("car4");
-                playerMovements = new Vector[4] { new Vector(0, 150), new Vector(0, -150), new Vector(-150, 0), new Vector(150, 0) };
-                healthRemaining = new DoubleMeter(580, 0, 580);
-                durabilityMultiplier = 1.4;
-                consumptionMultiplier = 1.9;
-                fuelRemaining = new DoubleMeter(150, 0, 150);
+                playerMovements = new Vector[4] { new Vector(0, 180), new Vector(0, -180), new Vector(-180, 0), new Vector(180, 0) };
+                healthRemaining = new DoubleMeter(520, 0, 520);
+                resistanceMultiplier = 1.5;
+                fuelRemaining = new DoubleMeter(210, 0, 210);
+                consumptionMultiplier = 1.4;
                 carConditions = new List<Image>() { LoadImage("car4_5"), LoadImage("car4_4"), LoadImage("car4_3"), LoadImage("car4_2"), LoadImage("car4_1"), LoadImage("car4") };
                 break;
             case "car_Super":
-                player.Width = 42;
-                player.Height = 84;
+                player.Width = carDimensions[0, 4] / 2.3;
+                player.Height = carDimensions[1, 4] / 2.3;
                 player.Image = LoadImage("car5");
-                playerMovements = new Vector[4] { new Vector(0, 350), new Vector(0, -350), new Vector(-350, 0), new Vector(350, 0) };
+                playerMovements = new Vector[4] { new Vector(0, 390), new Vector(0, -390), new Vector(-390, 0), new Vector(390, 0) };
                 healthRemaining = new DoubleMeter(130, 0, 130);
-                durabilityMultiplier = 1.1;
-                consumptionMultiplier = 1.6;
+                resistanceMultiplier = 1.2;
                 fuelRemaining = new DoubleMeter(90, 0, 90);
+                consumptionMultiplier = 1.5;
                 carConditions = new List<Image>() { LoadImage("car5_5"), LoadImage("car5_4"), LoadImage("car5_3"), LoadImage("car5_2"), LoadImage("car5_1"), LoadImage("car5") };
                 break;
         }
@@ -531,7 +631,7 @@ public class autopeli : PhysicsGame
 
         GameObject shadow = new GameObject(115, 180);
         shadow.Position = new Vector(Screen.Right - 65, Screen.Bottom + 140);
-        shadow.Color = new Color(0, 0, 0, 0.6);
+        shadow.Color = new Color(0, 0, 0, 0.75);
         Add(shadow, 1);
     }
 
@@ -614,7 +714,7 @@ public class autopeli : PhysicsGame
             roadMidline.CanRotate = false;
             roadMidline.IgnoresCollisionResponse = true;
             roadMidline.LifetimeLeft = TimeSpan.FromSeconds(5.0);
-            objectGroup.Add(roadMidline);
+            addedItems.Add(roadMidline);
             Add(roadMidline, -3);
             roadMidline.Hit(gameSpeed * roadMidline.Mass * zoneMultipliers[3]);
         }; 
@@ -625,6 +725,7 @@ public class autopeli : PhysicsGame
     {
         Timer obstacleCreator = new Timer(RandomGen.NextDouble(spawnMin, spawnMax) / zoneMultipliers[1]);
         gameTimers.Add(obstacleCreator);
+        obstacleCreator.Start();
 
         obstacleCreator.Timeout += delegate
         {
@@ -637,18 +738,17 @@ public class autopeli : PhysicsGame
             obstacleCreator.Interval = RandomGen.NextDouble(spawnMin, spawnMax) / zoneMultipliers[1];
 
             PhysicsObject obstacle = new PhysicsObject(RandomGen.NextDouble(sizeMin, sizeMax) * zoneMultipliers[2], RandomGen.NextDouble(sizeMin, sizeMax) * zoneMultipliers[2]);
-            obstacle.Position = new Vector(RandomGen.NextDouble(railings[0].Right + obstacle.Width / 2 + 10, railings[1].Left + obstacle.Width / 2 - 10), RandomGen.NextDouble(Screen.Top + 10.0, Screen.Top + 40.0));
+            obstacle.Position = new Vector(RandomGen.NextDouble(railings[0].Right + obstacle.Width / 2 + 15, railings[1].Left + obstacle.Width / 2 - 15), RandomGen.NextDouble(Screen.Top + 10.0, Screen.Top + 40.0));
             obstacle.Angle = RandomGen.NextAngle();
-            obstacle.Image = LoadImage("obstacle");
+            obstacle.Image = OBSTACLES[RandomGen.NextInt(1, 5)];
             obstacle.CanRotate = false;
             obstacle.IgnoresCollisionResponse = true;
             obstacle.Tag = "obstacle_group";
             obstacle.LifetimeLeft = TimeSpan.FromSeconds(5.0);
-            objectGroup.Add(obstacle);
+            addedItems.Add(obstacle);
             Add(obstacle, -2);
             obstacle.Hit(gameSpeed * obstacle.Mass * zoneMultipliers[3]);
         };
-        obstacleCreator.Start();
     }
 
 
@@ -656,6 +756,7 @@ public class autopeli : PhysicsGame
     {
         Timer collectibleCreator = new Timer(RandomGen.NextDouble(spawnMin, spawnMax));
         gameTimers.Add(collectibleCreator);
+        collectibleCreator.Start();
 
         collectibleCreator.Timeout += delegate
         {
@@ -667,20 +768,18 @@ public class autopeli : PhysicsGame
 
             collectibleCreator.Interval = RandomGen.NextDouble(spawnMin, spawnMax);
 
-            collectible = new PhysicsObject(25.0, 25.0);
-            collectible.Position = new Vector(RandomGen.NextDouble(railings[0].Right + collectible.Width / 2 + 10, railings[1].Left + collectible.Width / 2 - 10), RandomGen.NextDouble(Screen.Top + 10.0, Screen.Top + 40.0));
+            collectible = new PhysicsObject(28, 28);
+            collectible.Position = new Vector(RandomGen.NextDouble(railings[0].Right + collectible.Width / 2 + 15, railings[1].Left + collectible.Width / 2 - 15), RandomGen.NextDouble(Screen.Top + 10.0, Screen.Top + 40.0));
             collectible.Image = LoadImage(collectibleImage);
             collectible.CanRotate = false;
             collectible.IgnoresCollisionResponse = true;
             collectible.Tag = collectibleGroup;
             collectible.LifetimeLeft = TimeSpan.FromSeconds(5.0);
             collectible.AddCollisionIgnoreGroup(1);
-            objectGroup.Add(collectible);
+            addedItems.Add(collectible);
             Add(collectible, -1);
             collectible.Hit(gameSpeed * collectible.Mass * zoneMultipliers[3]);
-        };
-
-        collectibleCreator.Start();
+        };   
     }
 
 
@@ -695,11 +794,7 @@ public class autopeli : PhysicsGame
         Keyboard.Listen(Key.D, ButtonState.Down, SetPlayerMovementSpeed, "Steer right", playerMovements[3]);
         Keyboard.Listen(Key.D, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[3]);
 
-        Keyboard.Listen(Key.F1, ButtonState.Pressed, ShowControlHelp, "Show controls");
         Keyboard.Listen(Key.Escape, ButtonState.Pressed, ConfirmExit, "End game");
-
-        // TODO: Tee puhelimelle ja X-Box -ohjaimelle yhteensopivat ohjaimet
-        // PhoneBackButton.Listen(ConfirmExit, "End Game");
     }
 
 
@@ -712,8 +807,8 @@ public class autopeli : PhysicsGame
 
         player.Velocity += direction;
 
-        if (player.Velocity.X > 0) player.Angle = Angle.FromDegrees(-10);
-        else if (player.Velocity.X < 0) player.Angle = Angle.FromDegrees(10);
+        if (player.Velocity.X > 0) player.Angle = Angle.FromDegrees(-8);
+        else if (player.Velocity.X < 0) player.Angle = Angle.FromDegrees(8);
         else player.Angle = Angle.FromDegrees(0);
     }
 
@@ -730,20 +825,17 @@ public class autopeli : PhysicsGame
 
         player.Velocity += direction;
 
-        if (player.Velocity.X > 0) player.Angle = Angle.FromDegrees(-10);
-        else if (player.Velocity.X < 0) player.Angle = Angle.FromDegrees(10);
+        if (player.Velocity.X > 0) player.Angle = Angle.FromDegrees(-8);
+        else if (player.Velocity.X < 0) player.Angle = Angle.FromDegrees(8);
         else player.Angle = Angle.FromDegrees(0);
     }
 
-
+    
     public void AddDistanceUI()
     {
-        distanceMeter = new Label();
+        Label distanceMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 80, 1.1);
         distanceMeter.BindTo(distanceRemaining);
-        distanceMeter.Position = new Vector(Screen.Right - 85, Screen.Bottom + 80);
-        distanceMeter.TextScale = new Vector(1, 1);
         distanceMeter.Color = Color.Black;
-        distanceMeter.TextColor = Color.White;
         distanceMeter.BorderColor = Color.White;
         distanceMeter.DecimalPlaces = 0;
         Add(distanceMeter, 2);
@@ -753,7 +845,7 @@ public class autopeli : PhysicsGame
         distanceUI.Image = LoadImage("distanceUI");
         Add(distanceUI, 2);
 
-        distanceHelpTimer = new Timer(0.01);
+        Timer distanceHelpTimer = new Timer(0.01);
         gameTimers.Add(distanceHelpTimer);
 
         distanceHelpTimer.Timeout += delegate
@@ -769,7 +861,7 @@ public class autopeli : PhysicsGame
                 finishline.IgnoresCollisionResponse = true;
                 finishline.Tag = "finishline_group";
                 finishline.AddCollisionIgnoreGroup(1);
-                objectGroup.Add(finishline);
+                addedItems.Add(finishline);
                 Add(finishline, -3);
                 finishline.Hit(gameSpeed * finishline.Mass);
                 finishlineSpawned = true;
@@ -780,12 +872,9 @@ public class autopeli : PhysicsGame
     
     public void AddFuelUI()
     {
-        fuelMeter = new Label();
+        fuelMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 140, 1.2);
         fuelMeter.BindTo(fuelRemaining);
-        fuelMeter.Position = new Vector(Screen.Right - 85, Screen.Bottom + 140);
-        fuelMeter.TextScale = new Vector(1.2, 1.2);
         fuelMeter.Color = Color.Black;
-        fuelMeter.TextColor = Color.White;
         fuelMeter.BorderColor = new Color(0.0, 1.0, 0.0);
         fuelMeter.DecimalPlaces = 0;
         Add(fuelMeter, 2);
@@ -803,12 +892,12 @@ public class autopeli : PhysicsGame
         fuelUI.Image = LoadImage("fuelUI");
         Add(fuelUI, 2);
 
-        fuelHelpTimer = new Timer(0.1);
+        Timer fuelHelpTimer = new Timer(0.1);
         gameTimers.Add(fuelHelpTimer);
 
         fuelHelpTimer.Timeout += delegate
         {
-            fuelRemaining.Value -= 0.25 * consumptionMultiplier;
+            fuelRemaining.Value -= 0.4 * consumptionMultiplier;
             ChangeFuelCondition();
         };
     }
@@ -816,12 +905,9 @@ public class autopeli : PhysicsGame
 
     public void AddHealthUI()
     {
-        healthMeter = new Label();
+        healthMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 200, 1.2);
         healthMeter.BindTo(healthRemaining);
-        healthMeter.Position = new Vector(Screen.Right - 85, Screen.Bottom + 200);
-        healthMeter.TextScale = new Vector(1.2, 1.2);
         healthMeter.Color = Color.Black;
-        healthMeter.TextColor = Color.White;
         healthMeter.BorderColor = new Color(0.0, 1.0, 0.0);
         healthMeter.DecimalPlaces = 0;
         Add(healthMeter, 2);
@@ -847,23 +933,20 @@ public class autopeli : PhysicsGame
         pointTotal = new DoubleMeter(0.0);
         pointMultiplier = new IntMeter(1, 1, 16);
 
-        pointMeter = new Label();
+        pointMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 80, 1.2);
         pointMeter.BindTo(pointTotal);
-        pointMeter.Position = new Vector(Screen.Right - 85, Screen.Bottom + 80);
-        pointMeter.TextScale = new Vector(1.2, 1.2);
         pointMeter.Color = Color.Black;
-        pointMeter.TextColor = Color.White;
         pointMeter.BorderColor = Color.Red;
         pointMeter.DecimalPlaces = 0;
         Add(pointMeter, 2);
 
-        pointMultiplierUI = new GameObject(35, 35);
-        pointMultiplierUI.Position = new Vector(pointMeter.X + 50.0, pointMeter.Y);
-        pointMultiplierUI.Image = LoadImage("multi1");
-        pointMultiplierUI.Color = Color.Black;
-        Add(pointMultiplierUI, 2);
+        pointMultiplierDisplay = new GameObject(35, 35);
+        pointMultiplierDisplay.Position = new Vector(pointMeter.X + 50.0, pointMeter.Y);
+        pointMultiplierDisplay.Image = LoadImage("multi1");
+        pointMultiplierDisplay.Color = Color.Black;
+        Add(pointMultiplierDisplay, 2);
 
-        pointHelpTimer = new Timer(0.1);
+        Timer pointHelpTimer = new Timer(0.1);
         gameTimers.Add(pointHelpTimer);
 
         pointHelpTimer.Timeout += delegate
@@ -875,27 +958,17 @@ public class autopeli : PhysicsGame
 
     public void CollisionWithObstacle(PhysicsObject player, PhysicsObject target, List<Image> conditions)
     {
-        SoundEffect crash = LoadSoundEffect("intense_explosion");
-        crash.Play();
+        CreateSound("intense_explosion");
 
         Explosion obstacleExplosion = new Explosion(2.5 * target.Width);
         obstacleExplosion.Position = target.Position;
         obstacleExplosion.UseShockWave = false;
         Add(obstacleExplosion);
         target.Destroy();
-        double removeHealth = RandomGen.NextInt(100, 180) / durabilityMultiplier;
+        double removeHealth = RandomGen.NextInt(100, 180) / resistanceMultiplier;
         healthRemaining.Value -= removeHealth;
 
-        Label collisionConsequence = CreateLabel($"-{removeHealth, 2:00} Damage", Color.Red, target.X, target.Y + 10 + 8, 0.8);
-        Add(collisionConsequence);
-
-        Timer displayTimer = new Timer(0.8);
-        displayTimer.Timeout += delegate
-        {
-            collisionConsequence.Destroy();
-            displayTimer.Stop();
-        };
-        displayTimer.Start();
+        CreateFlow(CreateLabel($"-{removeHealth, 2:00} Damage", Color.Red, target.X, target.Y, 0.8));
 
         ChangeCarCondition(conditions);
 
@@ -909,54 +982,35 @@ public class autopeli : PhysicsGame
 
     private void CollisionWithFuel(PhysicsObject player, PhysicsObject target)
     {
-        SoundEffect replenish = LoadSoundEffect("fuel");
-        replenish.Play();
+        CreateSound("fuel");
+
         target.Destroy();
         double addFuel = RandomGen.NextInt(25, 35) * (0.5 + fuelRemaining.MaxValue / 200);
         fuelRemaining.Value += addFuel;
 
-        Label collisionConsequence = CreateLabel($"+{addFuel, 2:00} Fuel", new Color(0.0, 1.0, 0.0), target.X, target.Y + 10, 0.8);
-        Add(collisionConsequence);
-
-        Timer displayTimer = new Timer(0.5);
-        displayTimer.Timeout += delegate
-        {
-            collisionConsequence.Destroy();
-            displayTimer.Stop();
-        };
-        displayTimer.Start();
+        CreateFlow(CreateLabel($"+{addFuel, 2:00} Fuel", new Color(0.0, 1.0, 0.0), target.X, target.Y, 0.8));
     }
 
 
     private void CollisionWithRepairkit(PhysicsObject player, PhysicsObject target, List<Image> conditions)
     {
-        SoundEffect improvement = LoadSoundEffect("repairkit");
-        improvement.Play();
+        CreateSound("repairkit");
+
         target.Destroy();
-        int addHealth = RandomGen.NextInt(40, 80);
+        double addHealth = RandomGen.NextInt(40, 80) * (0.5 + healthRemaining.MaxValue / 400);
         healthRemaining.Value += addHealth;
 
         ChangeCarCondition(conditions);
 
-        Label collisionConsequence = new Label();
         if (difficulty == "endurance" && healthRemaining.Value == healthRemaining.MaxValue)
         {
             pointTotal.Value++;
-            collisionConsequence = CreateLabel($"+1 Score", Color.Yellow, target.X, target.Y + 10, 0.8);
+            CreateFlow(CreateLabel($"+1 Score", Color.Yellow, target.X, target.Y, 0.8));
         }
         else
         {
-            collisionConsequence = CreateLabel($"+{addHealth} Health", Color.HotPink, target.X, target.Y + 10, 0.8);
+            CreateFlow(CreateLabel($"+{addHealth, 2:00} Health", Color.HotPink, target.X, target.Y, 0.8));
         }
-        Add(collisionConsequence);
-
-        Timer displayTimer = new Timer(0.5);
-        displayTimer.Timeout += delegate
-        {
-            collisionConsequence.Destroy();
-            displayTimer.Stop();
-        };
-        displayTimer.Start();
     }
 
 
@@ -967,27 +1021,27 @@ public class autopeli : PhysicsGame
 
         finishline.Velocity = Vector.Zero;
         player.AddCollisionIgnoreGroup(1);
-        player.Hit(new Vector(0.0, 400.0) * player.Mass);
+        player.Hit(-gameSpeed * 2 * player.Mass);
         player.LifetimeLeft = TimeSpan.FromSeconds(3.0);
     }
 
 
     private void CollisionWithCoin(PhysicsObject player, PhysicsObject target)
     {
-        SoundEffect money = LoadSoundEffect("5");
-        money.Play();
+        CreateSound("5");
+
         target.Destroy();
 
         Label collisionConsequence;
         if (pointMultiplier.Value == pointMultiplier.MaxValue)
         {
             pointTotal.Value += 2;
-            collisionConsequence = CreateLabel($"+2 Score", Color.Yellow, target.X, target.Y + 10, 0.8);
+            collisionConsequence = CreateLabel($"+2 Score", Color.Yellow, target.X, target.Y, 0.8);
         }
         else
         {
             pointMultiplier.Value *= 2;
-            collisionConsequence = CreateLabel($"Score X{pointMultiplier.Value}", new Color(0.0, 0.8, 1.0), target.X, target.Y + 10, 0.8);
+            collisionConsequence = CreateLabel($"Score X{pointMultiplier.Value}", new Color(0.0, 0.8, 1.0), target.X, target.Y, 0.8);
         }
 
         Add(collisionConsequence);
@@ -1075,7 +1129,7 @@ public class autopeli : PhysicsGame
 
     private void ChangePointCondition()
     {
-        pointMultiplierUI.Image = LoadImage($"multi{pointMultiplier.Value}");
+        pointMultiplierDisplay.Image = LoadImage($"multi{pointMultiplier.Value}");
 
         switch (pointMultiplier.Value)
         {
@@ -1107,8 +1161,8 @@ public class autopeli : PhysicsGame
         carExplosion.Speed = 200.0;
         carExplosion.Sound = LoadSoundEffect("1");
         Add(carExplosion);
-        SoundEffect destruction = LoadSoundEffect("destruction");
-        destruction.Play();
+
+        CreateSound("destruction");
 
         player.Velocity = Vector.Zero;
 
@@ -1119,8 +1173,7 @@ public class autopeli : PhysicsGame
     public void FuelRanOut()
     {
         gamePassed = false;
-        SoundEffect empty = LoadSoundEffect("fuel_out");
-        empty.Play();
+        CreateSound("fuel_out");
 
         player.Velocity = Vector.Zero;
 
@@ -1131,31 +1184,33 @@ public class autopeli : PhysicsGame
     public void GameEnd(string message)
     {
         gameIsOn = false;
-        if (gamePassed && difficulty == "standard" && firstCompletion)
+        if (gamePassed && difficulty == "standard")
         {
-            gameFullyUnlocked = true;
             SaveUnlocks();
         }
         if (difficulty == "endurance")
         {
+            pointTotal.Value = Math.Round(pointTotal.Value, 1);
             hiscores.Add(playerName, pointTotal.Value);
             DataStorage.Save<ScoreList>(hiscores, "hiscores.xml");
         }
 
+        if (gamePassed) CreateSound("win");
+        else CreateSound("loss");
         DisableControls();
         StopGameTimers();
 
-        Label endReason = CreateLabel(message, Color.Black, y: 20);
+        foreach (PhysicsObject item in addedItems) item.LifetimeLeft = TimeSpan.FromMinutes(2);
+        foreach (PhysicsObject x in addedItems) x.Velocity = Vector.Zero;
+
+        Label endReason = CreateLabel(message, new Color(255, 255, 100), y: 20, scale: 1.3);
         Add(endReason);
 
         DoubleMeter countdown = new DoubleMeter(3);
-        Label endTimerDisplay = CreateLabel("", Color.Black, y: -20);
-        endTimerDisplay.BindTo(countdown);
-        endTimerDisplay.DecimalPlaces = 0;
-        endTimerDisplay.TextScale = new Vector(1.5, 1.5);
-        Add(endTimerDisplay);
 
         Timer endHelpTimer = new Timer(1);
+        endHelpTimer.Start(3);
+
         endHelpTimer.Timeout += delegate
         {
             countdown.Value -= 1;
@@ -1163,16 +1218,10 @@ public class autopeli : PhysicsGame
             if (countdown.Value == 0)
             {
                 endHelpTimer.Stop();
-                if (gamePassed) EndMenu("win");
-                else EndMenu("loss");
                 endReason.Destroy();
-                endTimerDisplay.Destroy();
+                EndMenu();
             }
         };
-        endHelpTimer.Start(3);
-
-        foreach (PhysicsObject item in objectGroup) item.LifetimeLeft = TimeSpan.FromMinutes(2);
-        foreach (PhysicsObject x in objectGroup) x.Velocity = Vector.Zero;
     }
 
     public void DisableControls()
@@ -1181,8 +1230,6 @@ public class autopeli : PhysicsGame
         Keyboard.Disable(Key.S);
         Keyboard.Disable(Key.A);
         Keyboard.Disable(Key.D);
-
-        // TODO: Muut näppäimet.
     }
 
 
@@ -1193,11 +1240,8 @@ public class autopeli : PhysicsGame
     }
 
 
-    public void EndMenu(string instance)
+    public void EndMenu()
     {
-        SoundEffect x = LoadSoundEffect(instance);
-        x.Play();
-
         MediaPlayer.Stop();
 
         Label[] endMenuButtons = new Label[] { CreateLabel("Retry", Color.White, y: 50), new Label(), CreateLabel("MainMenu", Color.White, y: -50) };
@@ -1232,14 +1276,32 @@ public class autopeli : PhysicsGame
         label.Position = new Vector(x, y);
         label.TextColor = textColor;
         label.IsVisible = isVisible;
+        label.Font = Font.FromContent("font1.otf");
         return label;
+    }
+
+
+    private void CreateFlow(Label effect)
+    {
+        Add(effect);
+
+        PhysicsObject lift = new PhysicsObject(1, 1);
+        lift.Position = new Vector(player.X, player.Y + 55);
+        lift.IgnoresCollisionResponse = true;
+        lift.Color = Color.Transparent;
+        lift.LifetimeLeft = TimeSpan.FromSeconds(0.5);
+        Add(lift);
+        lift.Hit(new Vector(0, 120 * lift.Mass));
+
+        Timer tracker = new Timer(0.01);
+        tracker.Start();
+        tracker.Timeout += delegate { effect.Position = lift.Position; if (lift.IsDestroyed) { effect.Destroy(); tracker.Stop(); } };        
     }
 
 
     public void Hiscores()
     {
-        SoundEffect buttonClicked = LoadSoundEffect("selected");
-        buttonClicked.Play();
+        CreateSound("selected");
 
         ClearAll();
 
@@ -1266,27 +1328,24 @@ public class autopeli : PhysicsGame
     public void DisplayUnlockMessage()
     {
         SaveCompletion();
-        firstCompletion = false;
 
-        Label unlocks = CreateLabel("You have beaten arcade mode and unlocked new content!", new Color(0.0, 1.0, 0.0), scale: 0.7);
+        Label unlocks = CreateLabel("You have beaten arcade mode and unlocked new content!", new Color(0.0, 1.0, 0.0), scale: 0.9);
         unlocks.LifetimeLeft = TimeSpan.FromSeconds(5);
         Add(unlocks, 1);
 
-        GameObject blackBox = new GameObject(unlocks.Width + 40, unlocks.Height + 40);
-        blackBox.Position = unlocks.Position;
-        blackBox.Color = new Color(0, 0, 0, 0.75);
-        blackBox.LifetimeLeft = TimeSpan.FromSeconds(5);
-        Add(blackBox, 0);
+        GameObject shadow = new GameObject(unlocks.Width + 40, unlocks.Height + 40);
+        shadow.Position = unlocks.Position;
+        shadow.Color = new Color(0, 0, 0, 0.75);
+        shadow.LifetimeLeft = TimeSpan.FromSeconds(5);
+        Add(shadow, 0);
 
-        SoundEffect popUp = LoadSoundEffect("4");
-        popUp.Play();
+        CreateSound("4");
     }
 
 
     public void LockedContent()
     {
-        SoundEffect accessDenied = LoadSoundEffect("locked");
-        accessDenied.Play();
+        CreateSound("locked");
 
         Label lockedContent = CreateLabel("Locked", Color.White, Mouse.PositionOnScreen.X, Mouse.PositionOnScreen.Y, 0.8);
         Add(lockedContent, 1);
@@ -1302,41 +1361,42 @@ public class autopeli : PhysicsGame
     //---------------------------------------------------------
 
 
-    private void AddCarList()
+    private void AddCars()
     {
-        carList = new List<GameObject>();
-        carNameList = new List<Label>();
-        string[] propertyAbbreviations = new string[4] { "MOB:", "DUR:", "CON:", "CAP:" };
-        propertiesOfAllCars = new Label[5][] { new Label[4], new Label[4], new Label[4], new Label[4], new Label[4] };
+        availableCars = new List<GameObject>();
+        titlesOfAvailableCars = new List<Label>();
+        string[] carPropertyAcronyms = new string[6] { "SIZE:", "MOB:", "DUR:", "RES:", "CAP:", "CON:" };
+        string[] carNames = new string[5] { "Basic Car", "Sports Car", "Power Car", "Heavy Car", "Super Car" };
+        carDimensions = new double[2, 5] { { 112, 101, 94, 120, 105 }, { 220, 220, 220, 220, 220 } };
+        propertyLabelsOfAllAvailableCars = new Label[6][] { new Label[6], new Label[6], new Label[6], new Label[6], new Label[6], new Label[6] };
 
-        CreateCarAvatar(-300, "car1");
-        CreateCarName(-300, 150, "Basic Car");
-
-        CreateCarAvatar(-150, "car2");
-        CreateCarName(-150, 150, "Sports Car");
-
-        CreateCarAvatar(0, "car3");
-        CreateCarName(0, 150, "Power Car");
+        for (int i = 0, x = -300; i < carNames.Length - 2; i++, x += 150)
+        {
+            CreateCarAvatar($"car{i + 1}", x, carDimensions[0, i], carDimensions[1, i]);
+            CreateCarName(carNames[i], x);
+        }
 
         if (gameFullyUnlocked)
         {
-            CreateCarAvatar(150, "car4");
-            CreateCarName(150, 150, "Heavy Car");
-
-            CreateCarAvatar(300, "car5");
-            CreateCarName(300, 150, "Super Car");
+            for (int i = 3, x = 150; i < carNames.Length; i++, x += 150)
+            {
+                CreateCarAvatar($"car{i + 1}", x, carDimensions[0, i], carDimensions[1, i]);
+                CreateCarName(carNames[i], x);
+            }
         }
         else
         {
-            CreateCarAvatar(150, "car4Locked");
-            CreateCarAvatar(300, "car5Locked");
+            for (int i = 3, x = 150; i < carNames.Length; i++, x += 150)
+            {
+                CreateCarAvatar($"car{i + 1}Locked", x, carDimensions[0, i], carDimensions[1, i]);
+            }
         }
 
-        for (int i = 0, x = -330; i < 5; i++, x += 150)
+        for (int i = 0, x = -330; i < 6; i++, x += 150)
         {
-            for (int j = 0, y = -90; j < 4; j++, y -= 20)
+            for (int j = 0, y = -85; j < 6; j++, y -= 16)
             {
-                propertiesOfAllCars[i][j] = CreateCarProperty(x, y, propertyAbbreviations[j], propertiesOfAllCars[i]);
+                propertyLabelsOfAllAvailableCars[i][j] = CreateCarProperty(propertyLabelsOfAllAvailableCars[i], carPropertyAcronyms[j], x, y);
             }
         }
     }
@@ -1344,23 +1404,23 @@ public class autopeli : PhysicsGame
 
     private void AddStars()
     {
-        allStars= new List<GameObject[][]> { new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                             new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                             new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                             new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                             new GameObject[4][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] } };
+        allStars= new List<GameObject[][]> { new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                             new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                             new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                             new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                             new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] } };
 
-        allActiveStars = new List<int[][]>() { new int[4][] { new int[3], new int[3], new int[4], new int[3] },
-                                               new int[4][] { new int[4], new int[2], new int[5], new int[1] },
-                                               new int[4][] { new int[2], new int[4], new int[1], new int[4] },
-                                               new int[4][] { new int[1], new int[5], new int[2], new int[5] },
-                                               new int[4][] { new int[5], new int[1], new int[3], new int[2] } };
+        allActiveStars = new List<int[][]>() { new int[6][] { new int[4], new int[2], new int[2], new int[2], new int[4], new int[3] },
+                                               new int[6][] { new int[5], new int[4], new int[2], new int[1], new int[1], new int[4] },
+                                               new int[6][] { new int[3], new int[3], new int[3], new int[5], new int[3], new int[1] },
+                                               new int[6][] { new int[1], new int[2], new int[5], new int[4], new int[5], new int[3] },
+                                               new int[6][] { new int[4], new int[5], new int[1], new int[2], new int[2], new int[2] } };
 
-        for (int i = 0, x = -330; i < carList.Count; i++, x += 150)
+        for (int i = 0, x = -330; i < availableCars.Count; i++, x += 150)
         {
-            for (int j = 0, y = -90; j < 4; j++, y -= 20, x -= 12 * 5)
+            for (int j = 0, y = -85; j < 6; j++, y -= 16, x -= 11 * 5)
             {
-                for (int k = 0; k < allStars[i][j].Length; k++, x += 12)
+                for (int k = 0; k < allStars[i][j].Length; k++, x += 11)
                 {
                     allStars[i][j][k] = CreateStar("star_passive", x, y, 9);
                 }
@@ -1369,27 +1429,27 @@ public class autopeli : PhysicsGame
     }
 
 
-    private void CreateCarAvatar(double x, string carImage)
+    private void CreateCarAvatar(string carImage, double x, double width, double height)
     {
-        GameObject car = new GameObject(75.0, 150.0);
+        GameObject car = new GameObject(width / 1.25, height / 1.25);
         car.Position = new Vector(x, 30.0);
         car.Image = LoadImage(carImage);
-        carList.Add(car);
+        availableCars.Add(car);
         Add(car);
     }
 
 
-    private void CreateCarName(double x, double y, string name)
+    private void CreateCarName(string name, double x, double y = 150)
     {
-        Label carName = CreateLabel(name, Color.Black, x, y, 0.8);
-        carNameList.Add(carName);
+        Label carName = CreateLabel(name, Color.White, x, y, 0.8);
+        titlesOfAvailableCars.Add(carName);
         Add(carName);
     }
 
 
-    private Label CreateCarProperty(double x, double y, string property, Label[] propertyList)
+    private Label CreateCarProperty(Label[] propertyList, string property, double x, double y)
     {
-        Label carProperty = CreateLabel(property, Color.Black, x, y, 0.65, false);
+        Label carProperty = CreateLabel(property, Color.Black, x, y, 0.6, false);
         Add(carProperty);
         return carProperty;
     }
@@ -1398,18 +1458,18 @@ public class autopeli : PhysicsGame
     private GameObject CreateStar(string image, double x, double y, double size)
     {
         GameObject star = new GameObject(size, size);
-        star.Position = new Vector(x + 30.0, y);
+        star.Position = new Vector(x + 25, y);
         star.Image = LoadImage(image);
         star.IsVisible = false;
         Add(star);
         return star;
     }
 
-    private void ActivateStars(List<GameObject> carList, int i)
+    private void ActivateStars(List<GameObject> availableCars, int i)
     {
-        if (Mouse.IsCursorOn(carList[i]))
+        if (Mouse.IsCursorOn(availableCars[i]))
         {
-            for (int j = 0; j < 4; j++)
+            for (int j = 0; j < 6; j++)
             {
                 for (int k = 0; k < allActiveStars[i][j].Length; k++)
                 {
@@ -1426,7 +1486,7 @@ public class autopeli : PhysicsGame
         }
         else
         {
-            for (int j = 0; j < 4; j++)
+            for (int j = 0; j < 6; j++)
             {
                 for (int k = 0; k < allActiveStars[i][j].Length; k++)
                 {
@@ -1453,7 +1513,7 @@ public class autopeli : PhysicsGame
 
         IntMeter zoneCurrent = new IntMeter(1, 1, 7);
         Label zoneMeter = CreateLabel($"Zone {zoneCurrent.Value}", Color.White, Screen.Right - 65, Screen.Bottom + 25);
-        zoneMeter.Color = new Color(0, 0, 0, 0.7);
+        zoneMeter.Color = new Color(0, 0, 0, 0.75);
         Add(zoneMeter);
 
         Timer zoneTimer = new Timer(40);
@@ -1491,8 +1551,7 @@ public class autopeli : PhysicsGame
 
     private void ZonePause(double pauseLength, Label zoneMeter, IntMeter zoneCurrent, double speedBalancer)
     {
-        SoundEffect zone = LoadSoundEffect("3");
-        zone.Play();
+        CreateSound("3");
 
         Label zoneSwitch = CreateLabel("Zone Up!", new Color(0.0, 1.0, 0.0), scale: 1.5);
 
@@ -1508,30 +1567,30 @@ public class autopeli : PhysicsGame
         Add(zoneSwitch);
 
         foreach (Timer t in gameTimers) t.Stop();
-        foreach (PhysicsObject item in objectGroup) item.Velocity = new Vector(0, item.Velocity.Y * speedBalancer);
+        foreach (PhysicsObject item in addedItems) item.Velocity = new Vector(0, item.Velocity.Y * speedBalancer);
         speedBalancer -= 0.03;
 
         Timer pauseTimer = new Timer(pauseLength);
         zoneTimers.Add(pauseTimer);
-
+        pauseTimer.Start(1);
+        
         pauseTimer.Timeout += delegate
         {
             zoneSwitch.Destroy();
             foreach (Timer t in gameTimers) t.Start();
         };
-
-        pauseTimer.Start(1);
     }
 
 
     private void SavePlayer(string playerName)
     {
-        for (int i = 0; i < saveSlots; i++)
+        for (int i = 0; i < profiles.Length; i++)
         {
-            if (DataStorage.Exists($"player{i}.xml")) continue;
-            DataStorage.Save<string>(playerName, $"player{i}.xml");
+            if (DataStorage.Exists($"player{i + 1}.xml")) continue;
             profiles[i] = playerName;
+            currentSaveFile = i + 1;
             DataStorage.Save<string[]>(profiles, "profiles.xml");
+            DataStorage.Save<string>(playerName, $"player{currentSaveFile}.xml");
             return;
         }
     }
@@ -1540,26 +1599,24 @@ public class autopeli : PhysicsGame
     private void SaveCompletion()
     {
         if (!firstCompletion) return;
-
-        for (int i = 0; i < saveSlots; i++)
-        {
-            if (DataStorage.Exists($"completion{i}")) continue;
-            DataStorage.Save<bool>(firstCompletion, $"completion{i}.xml");
-            return;
-        }
+        firstCompletion = false;
+        DataStorage.Save<bool>(firstCompletion, $"completion{currentSaveFile}.xml");
     }
 
 
     private void SaveUnlocks()
     {
         if (gameFullyUnlocked) return;
+        gameFullyUnlocked = true;
+        DataStorage.Save<bool>(gameFullyUnlocked, $"unlocks{currentSaveFile}.xml");
+    }
 
-        for (int i = 0; i < saveSlots; i++)
-        {
-            if (DataStorage.Exists($"unlocks{i}")) continue;
-            DataStorage.Save<bool>(gameFullyUnlocked, $"unlocks{i}.xml");
-            return;
-        }
+
+    private void FormatSounds()
+    {
+        CreateSound("selected");
+        mouseOnButton = false;
+        soundPlayed = false;
     }
 
 
@@ -1573,9 +1630,26 @@ public class autopeli : PhysicsGame
     {
         mouseOnButton = false;
 
-        foreach (Label button in openingMenuButtons)
+
+        if (DataStorage.Exists("lastUsedProfile.xml"))
         {
-            HandleButton(button, Color.White, Color.Gold);
+            HandleButton(openingMenuButtons[0], Color.White, new Color(0, 255, 0), 1, 1);
+        }
+
+        for (int i = 0; i < profiles.Length; i++)
+        {
+            if (profiles[i] == "---")
+            {
+                HandleButton(openingMenuButtons[1], Color.White, new Color(0, 255, 0), 1, 1);
+            }
+        }
+
+        for (int i = 0; i < profiles.Length; i++)
+        {
+            if (DataStorage.Exists($"player{i + 1}.xml"))
+            {
+                HandleButton(openingMenuButtons[2], Color.White, new Color(0, 255, 0), 1, 1);
+            }
         }
 
         if (!mouseOnButton) soundPlayed = false;
@@ -1588,7 +1662,7 @@ public class autopeli : PhysicsGame
 
         for (int i = 0; i < 5; i++)
         {
-            if (DataStorage.Exists($"player{i}.xml"))
+            if (DataStorage.Exists($"player{i + 1}.xml"))
             {
                 HandleButton(profileLabels[i], Color.Black, new Color(0, 255, 0), 0.9, 0.9);
             }
@@ -1625,11 +1699,21 @@ public class autopeli : PhysicsGame
     {
         mouseOnButton = false;
 
-        Color[] buttonColors = new Color[3] { new Color(0.0, 1.0, 0.0), Color.Yellow, Color.Red };
+        Color[] buttonColors = new Color[3] { new Color(0, 255, 0), Color.GreenYellow, Color.Yellow };
 
-        for (int i = 0; i < difficultyMenuButtons.Count; i++)
+        if (gameFullyUnlocked)
         {
-            HandleButton(difficultyMenuButtons[i], Color.White, buttonColors[i], 1.1, 1.2);
+            for (int i = 0; i < difficultyMenuButtons.Count; i++)
+            {
+                HandleButton(difficultyMenuButtons[i], Color.White, buttonColors[i]);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < difficultyMenuButtons.Count - 1; i++)
+            {
+                HandleButton(difficultyMenuButtons[i], Color.White, buttonColors[i]);
+            }
         }
 
         if (!mouseOnButton) soundPlayed = false;
@@ -1642,19 +1726,19 @@ public class autopeli : PhysicsGame
     {
         mouseOnButton = false;
 
-        for (int i = 0; i < carNameList.Count; i++)
+        for (int i = 0; i < titlesOfAvailableCars.Count; i++)
         {
-            if (Mouse.IsCursorOn(carList[i]))
+            if (Mouse.IsCursorOn(availableCars[i]))
             {               
-                HandleCarLabel(carList, i);
-                foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = true;
-                ActivateStars(carList, i);
+                foreach (Label propertyOfCar in propertyLabelsOfAllAvailableCars[i]) propertyOfCar.IsVisible = true;
+                HandleCarLabel(availableCars, i);
+                ActivateStars(availableCars, i);
             }
             else
             {
-                foreach (Label propertyOfCar in propertiesOfAllCars[i]) propertyOfCar.IsVisible = false;
-                HandleCarLabel(carList, i);
-                ActivateStars(carList, i);
+                foreach (Label propertyOfCar in propertyLabelsOfAllAvailableCars[i]) propertyOfCar.IsVisible = false;
+                HandleCarLabel(availableCars, i);
+                ActivateStars(availableCars, i);
             }
         }
 
@@ -1696,9 +1780,9 @@ public class autopeli : PhysicsGame
     }
 
 
-    private void HandleCarLabel(List<GameObject> carList, int i)
+    private void HandleCarLabel(List<GameObject> availableCars, int i)
     {
-        if (Mouse.IsCursorOn(carList[i]))
+        if (Mouse.IsCursorOn(availableCars[i]))
         {
             mouseOnButton = true;
 
@@ -1708,19 +1792,19 @@ public class autopeli : PhysicsGame
                 soundPlayed = true;
             }
 
-            UpdateLabel(carNameList[i], Color.Gold, 1);
-            carNameList[i].Y = 160;
+            UpdateLabel(titlesOfAvailableCars[i], Color.HotPink, 1);
+            titlesOfAvailableCars[i].Y = 160;
 
-            carList[i].Width = 85.0;
-            carList[i].Height = 170.0;
+            availableCars[i].Width = carDimensions[0, i] / 1.15;
+            availableCars[i].Height = carDimensions[1, i] / 1.15;
         }
         else
         {
-            UpdateLabel(carNameList[i], Color.Black, 0.8);
-            carNameList[i].Y = 150;
+            UpdateLabel(titlesOfAvailableCars[i], Color.White, 0.8);
+            titlesOfAvailableCars[i].Y = 150;
 
-            carList[i].Width = 75.0;
-            carList[i].Height = 150.0;            
+            availableCars[i].Width = carDimensions[0, i] / 1.25;
+            availableCars[i].Height = carDimensions[1, i] / 1.25;
         }
     }
 
