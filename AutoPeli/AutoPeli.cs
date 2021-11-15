@@ -9,13 +9,11 @@ public class autopeli : PhysicsGame
 {
     // Preloaded constants    
     private readonly List<Image> OBSTACLES = new List<Image>()
-    {
-        LoadImage("obstacle_1"), LoadImage("obstacle_2"), LoadImage("obstacle_3"),
-        LoadImage("obstacle_4"), LoadImage("obstacle_5")
-    };
+    { LoadImage("obstacle_1"), LoadImage("obstacle_2"), LoadImage("obstacle_3"),
+      LoadImage("obstacle_4"), LoadImage("obstacle_5") };
 
     // Profile and score variables
-    [Save] private ScoreList hiscores = new ScoreList(15, false, 0);
+    [Save] private ScoreList hiscores = new ScoreList(9, false, 0);
     [Save] private string[] profiles = new string[5] { "---", "---", "---", "---", "---" };
     [Save] private string playerName;
     private int currentSaveFile;
@@ -25,7 +23,7 @@ public class autopeli : PhysicsGame
     private bool gameIsOn;
     private bool gamePassed;
     [Save] private bool firstCompletion = true;
-    [Save] private bool gameFullyUnlocked = true;
+    [Save] private bool gameFullyUnlocked = false;
 
     // In game physics objects and variables
     private string difficulty;
@@ -75,6 +73,11 @@ public class autopeli : PhysicsGame
     private bool mouseOnButton = false;
 
 
+    /// <summary>
+    /// Loads possible pre-existing profiles and hiscores from appropriate files
+    /// and overwrites default profiles and hiscores variables with the filedata.
+    /// Finally calls for the initial opening menu to begin the game.
+    /// </summary>
     public override void Begin()
     {
         if (DataStorage.Exists("profiles.xml")) profiles = DataStorage.TryLoad<string[]>(profiles, "profiles.xml");
@@ -93,6 +96,11 @@ public class autopeli : PhysicsGame
     }
     
 
+    /// <summary>
+    /// Creates the opening menu with buttons for continuing last game session,
+    /// creating new profile and loading an existing profile.
+    /// Pressing each button calls for their respective method.
+    /// </summary>
     private void OpeningMenu()
     {
         ClearAll();
@@ -164,6 +172,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Prompts the player a field to input a new profile name
+    /// and saves the entered text as a new profile, entering main menu in the end.
+    /// </summary>
     public void NewProfile()
     {
         CreateSound("selected");
@@ -172,14 +184,14 @@ public class autopeli : PhysicsGame
 
         Level.Background.CreateGradient(Color.LightGreen, new Color(30, 30, 30));
 
-        InputWindow nameQuery = new InputWindow("Player Name: ");
+        InputWindow nameQuery = new InputWindow("Player Name:  (max length 14)");
+        nameQuery.InputBox.Font = Font.FromContent("font1.otf");
         Add(nameQuery);
 
         nameQuery.TextEntered += delegate { playerName = nameQuery.InputBox.Text; };
-        
         nameQuery.Closed += delegate
         {
-            if (playerName.Trim().Length > 1 && playerName.Trim().Length < 14)
+            if (1 < playerName.Trim().Length && playerName.Trim().Length < 14)
             {
                 SavePlayer(playerName);
                 MainMenu(playerName);
@@ -189,6 +201,13 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Creates the load menu with buttons for each 5 profileslots.
+    /// Left clicking an occupied profile calls for LoadProfile method.
+    /// Middle clicking on an occupied profile calls for DeleteProfile method.
+    /// Right clicking returns to main menu if there are any profiles
+    /// left to load and opening menu if not.
+    /// </summary>
     private void LoadMenu()
     {
         ClearAll();
@@ -227,6 +246,11 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Prompts the player with a choice to delete the selected profile.
+    /// Proceeding with the delete removes the profile and re-enters main menu.
+    /// </summary>
+    /// <param name="profileIndex">Profile to be deleted</param>
     private void DeleteMenu(int profileIndex)
     {
         CreateSound("selected");
@@ -246,6 +270,11 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Deletes the profile and all files related to it.
+    /// Finally re-enters load menu.
+    /// </summary>
+    /// <param name="profileIndex">Profile to be deleted</param>
     private void DeleteProfile(int profileIndex)
     {
         if (DataStorage.TryLoad<string>(playerName, "lastUsedProfile.xml") == DataStorage.TryLoad<string>(playerName, $"player{profileIndex + 1}.xml"))
@@ -263,6 +292,11 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Loads the selected profile and all filedata related to it.
+    /// Finally enters main menu.
+    /// </summary>
+    /// <param name="profileIndex">Profile to be loaded</param>
     private void LoadProfile(int profileIndex)
     {
         currentSaveFile = profileIndex + 1;
@@ -273,7 +307,14 @@ public class autopeli : PhysicsGame
         MainMenu(playerName);
     }
 
-    
+
+    /// <summary>
+    /// Creates the main menu with buttons for arcade and
+    /// endurance modes, load profile, hiscores and exit game.
+    /// Pressing each button calls for their respective method.
+    /// Having completed the full game unlocks different options in the menu.
+    /// </summary>
+    /// <param name="player">Loaded profile</param>
     public void MainMenu(string player)
     {
         DataStorage.Save<string>(playerName, "lastUsedProfile.xml");
@@ -321,6 +362,12 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Creates the difficulty menu with buttons for beginner,
+    /// standard and maddness difficulties.
+    /// Maddness difficulty button needs game's full completion to access.
+    /// Pressing each button calls the method CarMenu with their respective parameter.
+    /// </summary>
     public void DifficultyMenu()
     {
         ClearAll();
@@ -366,8 +413,17 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Creates the car menu with images of available cars and
+    /// their individual properties.
+    /// Some cars need game's full completion to access.
+    /// Pressing each car calls the method CreateStage with their respective parameter.
+    /// </summary>
+    /// <param name="selectedDifficulty">Selected game difficulty</param>
     public void CarMenu(string selectedDifficulty)
     {
+        difficulty = selectedDifficulty;
+
         ClearAll();
         FormatSounds();
 
@@ -388,8 +444,6 @@ public class autopeli : PhysicsGame
         };
 
         foreach (Label description in descriptions) Add(description, 2);
-
-        difficulty = selectedDifficulty;
 
         AddCars();
         AddStars();
@@ -413,6 +467,14 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Resets in-game truth values and timers for a fresh game start.
+    /// Adds the playable character based on player's earlier selections.
+    /// Creates the skeleton of the stage around the playable character.
+    /// Creates the UI for the player.
+    /// Finally calls for the method StartGame.
+    /// </summary>
+    /// <param name="selectedCar">Selected vehicle</param>
     public void CreateStage(string selectedCar)
     {
         CreateSound("selected");
@@ -420,8 +482,6 @@ public class autopeli : PhysicsGame
         ClearAll();
 
         Level.Background.CreateGradient(new Color(10, 10, 10), new Color(50, 50, 50));
-
-        AddPlayer(selectedCar);
 
         finishlineSpawned = false;
         gamePassed = false;
@@ -433,22 +493,28 @@ public class autopeli : PhysicsGame
 
         zoneMultipliers = new double[4] { 1, 1, 1, 1 };
 
-        distanceRemaining = new DoubleMeter(1000, 0, 5000);        
+        distanceRemaining = new DoubleMeter(1000, 0, 5000);
 
-        StartGame();
-    }
-
-    public void StartGame()
-    {
+        AddPlayer(selectedCar);
         AddWalls();
         AddStartScreenItems();
         AddPlayerUI();
+        StartGame();
+    }
+
+
+    /// <summary>
+    /// Starts countdown after which the playable character is set in motion
+    /// and the player is given control of the character.
+    /// Finally item creators are called with parameters based on the selected difficulty.
+    /// </summary>
+    public void StartGame()
+    {
         if (difficulty != "endurance") IncreaseDistance();
 
         AddBackgroundMusic("default_5");
         string[] statements = new string[3] { "Ready", "Set", "Go!" };
         int i = 0;
-        PhysicsObject[] collectibles = new PhysicsObject[3];
 
         DoubleMeter counter = new DoubleMeter(0);
 
@@ -477,27 +543,27 @@ public class autopeli : PhysicsGame
                 {
                     case "beginner":
                         CreateObstacle(12.5, 30.0, 0.1, 1.2);
-                        CreateCollectible(collectibles[0], "fuel", "fuel_group", 2, 4);
-                        CreateCollectible(collectibles[1], "repairkit", "repairkit_group", 4, 6);
+                        CreateCollectible("fuel", "fuel_group", 2, 4);
+                        CreateCollectible("repairkit", "repairkit_group", 4, 6);
                         gameSpeed = new Vector(0, -250);
                         break;
                     case "standard":
                         CreateObstacle(12.5, 30.0, 0.05, 0.8);
-                        CreateCollectible(collectibles[0], "fuel", "fuel_group", 3, 6);
-                        CreateCollectible(collectibles[1], "repairkit", "repairkit_group", 6, 9);
+                        CreateCollectible("fuel", "fuel_group", 3, 6);
+                        CreateCollectible("repairkit", "repairkit_group", 6, 9);
                         gameSpeed = new Vector(0, -350);
                         break;
                     case "madness":
                         CreateObstacle(12.5, 30.0, 0.0, 0.4);
-                        CreateCollectible(collectibles[0], "fuel", "fuel_group", 4, 8);
-                        CreateCollectible(collectibles[1], "repairkit", "repairkit_group", 8, 12);
+                        CreateCollectible("fuel", "fuel_group", 4, 8);
+                        CreateCollectible("repairkit", "repairkit_group", 8, 12);
                         gameSpeed = new Vector(0, -500);
                         break;
                     case "endurance":
                         CreateObstacle(10.0, 30.0, 0.5, 2.0);
-                        CreateCollectible(collectibles[0], "fuel", "fuel_group", 3, 4);
-                        CreateCollectible(collectibles[1], "repairkit", "repairkit_group", 5, 7);
-                        CreateCollectible(collectibles[2], "coin", "coin_group", 9, 11);
+                        CreateCollectible("fuel", "fuel_group", 3, 4);
+                        CreateCollectible("repairkit", "repairkit_group", 5, 7);
+                        CreateCollectible("coin", "coin_group", 9, 11);
                         gameSpeed = new Vector(0, -200);
                         break;
                 }
@@ -508,6 +574,9 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Arcade mode's required travel distance is adjusted based on selected difficulty.
+    /// </summary>
     private void IncreaseDistance()
     {
         if (difficulty == "beginner") return;
@@ -516,6 +585,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Adds a game object with an image of a traffic light.
+    /// </summary>
+    /// <param name="imageName">Image used</param>
     public void CreateTrafficLight(string imageName)
     {
         GameObject trafficLight = new GameObject(60, 180);
@@ -527,6 +600,12 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Adds the playable character based on player's selection.
+    /// Creates event handlers for crashes between the playable
+    /// character and other objects.
+    /// </summary>
+    /// <param name="selectedCar">Selected vehicle</param>
     public void AddPlayer(string selectedCar)
     {
         car = selectedCar;
@@ -611,6 +690,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Creates the player UI, including the interface, fuel bar and meter, health bar and meter
+    /// and either points and zone meter or distance meter depending on game mode.
+    /// </summary>
     public void AddPlayerUI()
     {
         AddFuelUI();
@@ -636,6 +719,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Adds the "grass" besids the road as well as the boundaries of the road,
+    /// limiting the character's movement inside them.
+    /// </summary>
     private void AddWalls()
     {
         Surface[] walls = new Surface[] { new Surface(130, Screen.Height), new Surface(130, Screen.Height) };
@@ -669,6 +756,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Creates the items on the screen as the game starts,
+    /// including the road lines and the startline.
+    /// </summary>
     private void AddStartScreenItems()
     {
         startItems = new List<PhysicsObject>();
@@ -695,6 +786,9 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Periodically creates a new road midline.
+    /// </summary>
     public void CreateRoadMidline()
     {
         Timer roadMidlineCreator = new Timer(0.8);
@@ -721,6 +815,13 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Periodically creates a new obstacle.
+    /// </summary>
+    /// <param name="sizeMin">Minimum width/height of the obstacle</param>
+    /// <param name="sizeMax">Maximum width/height of the obstacle</param>
+    /// <param name="spawnMin">Minimum spawn interval of the obstacle</param>
+    /// <param name="spawnMax">Maximum spawn interval of the obstacle</param>
     public void CreateObstacle(double sizeMin, double sizeMax, double spawnMin, double spawnMax)
     {
         Timer obstacleCreator = new Timer(RandomGen.NextDouble(spawnMin, spawnMax) / zoneMultipliers[1]);
@@ -752,7 +853,14 @@ public class autopeli : PhysicsGame
     }
 
 
-    public void CreateCollectible(PhysicsObject collectible, string collectibleImage, string collectibleGroup, double spawnMin, double spawnMax)
+    /// <summary>
+    /// Periodically creates a new collectible.
+    /// </summary>
+    /// <param name="collectibleImage">Collectible image</param>
+    /// <param name="collectibleGroup">Group to which collectible to be created belongs to</param>
+    /// <param name="spawnMin">Minimum spawn interval of the obstacle</param>
+    /// <param name="spawnMax">Maximum spawn interval of the obstacle</param>
+    public void CreateCollectible(string collectibleImage, string collectibleGroup, double spawnMin, double spawnMax)
     {
         Timer collectibleCreator = new Timer(RandomGen.NextDouble(spawnMin, spawnMax));
         gameTimers.Add(collectibleCreator);
@@ -768,7 +876,7 @@ public class autopeli : PhysicsGame
 
             collectibleCreator.Interval = RandomGen.NextDouble(spawnMin, spawnMax);
 
-            collectible = new PhysicsObject(28, 28);
+            PhysicsObject collectible = new PhysicsObject(30, 30);
             collectible.Position = new Vector(RandomGen.NextDouble(railings[0].Right + collectible.Width / 2 + 15, railings[1].Left + collectible.Width / 2 - 15), RandomGen.NextDouble(Screen.Top + 10.0, Screen.Top + 40.0));
             collectible.Image = LoadImage(collectibleImage);
             collectible.CanRotate = false;
@@ -783,21 +891,31 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Creates event handlers for listening WASD and Esc keys.
+    /// </summary>
+    /// <param name="playerMovements">Direction of player's movement</param>
     public void SetControls(Vector[] playerMovements)
     {
-        Keyboard.Listen(Key.W, ButtonState.Down, SetPlayerMovementSpeed, "Accelerate", playerMovements[0]);
+        Keyboard.Listen(Key.W, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[0]);
         Keyboard.Listen(Key.W, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[0]);
-        Keyboard.Listen(Key.S, ButtonState.Down, SetPlayerMovementSpeed, "Decelerate", playerMovements[1]);
+        Keyboard.Listen(Key.S, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[1]);
         Keyboard.Listen(Key.S, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[1]);
-        Keyboard.Listen(Key.A, ButtonState.Down, SetPlayerMovementSpeed, "Steer left", playerMovements[2]);
+        Keyboard.Listen(Key.A, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[2]);
         Keyboard.Listen(Key.A, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[2]);
-        Keyboard.Listen(Key.D, ButtonState.Down, SetPlayerMovementSpeed, "Steer right", playerMovements[3]);
+        Keyboard.Listen(Key.D, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[3]);
         Keyboard.Listen(Key.D, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[3]);
 
-        Keyboard.Listen(Key.Escape, ButtonState.Pressed, ConfirmExit, "End game");
+        Keyboard.Listen(Key.Escape, ButtonState.Pressed, ConfirmExit, null);
     }
 
 
+    /// <summary>
+    /// Manages playable character's movement on screen,
+    /// increasing it in the direction of the received parameter.
+    /// Turns the character based on its velocity.
+    /// </summary>
+    /// <param name="direction">Change in character's movement</param>
     public void SetPlayerMovementSpeed(Vector direction)
     {
         if (direction.X < 0 && player.Velocity.X < 0) return;
@@ -813,6 +931,12 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Manages playable character's movement on screen,
+    /// decreasing it in the direction of the received parameter.
+    /// Turns the character based on its velocity.
+    /// </summary>
+    /// <param name="direction">Change in character's movement</param>
     public void ResetPlayerMovementSpeed(Vector direction)
     {
         if (player.Velocity.X == 0 && direction.X != 0)
@@ -831,6 +955,10 @@ public class autopeli : PhysicsGame
     }
 
     
+    /// <summary>
+    /// Creates the UI for displaying the remaining distance
+    /// to the finishline in arcade mode.
+    /// </summary>
     public void AddDistanceUI()
     {
         Label distanceMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 80, 1.1);
@@ -869,7 +997,11 @@ public class autopeli : PhysicsGame
         };
     }
 
-    
+
+    /// <summary>
+    /// Creates the UI for displaying the remaining fuel.
+    /// Reduces fuel over time.
+    /// </summary>
     public void AddFuelUI()
     {
         fuelMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 140, 1.2);
@@ -887,7 +1019,7 @@ public class autopeli : PhysicsGame
         fuelBar.BarColor = new Color(0.0, 1.0, 0.0);
         Add(fuelBar, 2);
 
-        GameObject fuelUI = new GameObject(31, 35);
+        GameObject fuelUI = new GameObject(35, 35);
         fuelUI.Position = new Vector(fuelMeter.X + 50, fuelMeter.Y - 4);
         fuelUI.Image = LoadImage("fuelUI");
         Add(fuelUI, 2);
@@ -897,12 +1029,15 @@ public class autopeli : PhysicsGame
 
         fuelHelpTimer.Timeout += delegate
         {
-            fuelRemaining.Value -= 0.4 * consumptionMultiplier;
+            fuelRemaining.Value -= 0.3 * consumptionMultiplier;
             ChangeFuelCondition();
         };
     }
 
 
+    /// <summary>
+    /// Creates the UI for displaying the remaining health.
+    /// </summary>
     public void AddHealthUI()
     {
         healthMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 200, 1.2);
@@ -928,6 +1063,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Creates the UI for displaying the total points earned.
+    /// Increases points over time.
+    /// </summary>
     public void AddPointsUI()
     {
         pointTotal = new DoubleMeter(0.0);
@@ -956,6 +1095,15 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Explodes the collided target and damages the playable character.
+    /// Calls the method ChangeCarCondition after damaging the character.
+    /// Halves the point multiplier value in endurance mode.
+    /// Displays the amount of damage dealt on screen.
+    /// </summary>
+    /// <param name="player">Playable character</param>
+    /// <param name="target">Target of character collision</param>
+    /// <param name="conditions">Current status of the character</param>
     public void CollisionWithObstacle(PhysicsObject player, PhysicsObject target, List<Image> conditions)
     {
         CreateSound("intense_explosion");
@@ -980,6 +1128,12 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Destroys the collided target and replenishes the player's fuel reserves.
+    /// Displays the amount of replenished fuel on screen.
+    /// </summary>
+    /// <param name="player">Playable character</param>
+    /// <param name="target">Target of character collision</param>
     private void CollisionWithFuel(PhysicsObject player, PhysicsObject target)
     {
         CreateSound("fuel");
@@ -992,6 +1146,14 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Destroys the collided target and heals the playable character.
+    /// Calls the method ChangeCarCondition after healing the character.
+    /// Offers extra points in endurance mode when at full health.
+    /// Displays the amount of health replenished on screen.
+    /// </summary>
+    /// <param name="player">Playable character</param>
+    /// <param name="target">Target of character collision</param>
     private void CollisionWithRepairkit(PhysicsObject player, PhysicsObject target, List<Image> conditions)
     {
         CreateSound("repairkit");
@@ -1014,6 +1176,12 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Stops the movement of finishline and hits the player offscreen.
+    /// Sets the game as passed and calls for the method GameEnd.
+    /// </summary>
+    /// <param name="player">Playable Character</param>
+    /// <param name="target">Target of character collision</param>
     private void CollisionWithFinishline(PhysicsObject player, PhysicsObject target)
     {
         gamePassed = true;
@@ -1026,38 +1194,47 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Destroys the collided target and doubles the point multiplier value.
+    /// Offers extra points when point modifier is at its max value (16).
+    /// Displays the updated point multiplier value on screen.
+    /// </summary>
+    /// <param name="player">Playable character</param>
+    /// <param name="target">Target of character collision</param>
     private void CollisionWithCoin(PhysicsObject player, PhysicsObject target)
     {
         CreateSound("5");
 
         target.Destroy();
 
-        Label collisionConsequence;
         if (pointMultiplier.Value == pointMultiplier.MaxValue)
         {
             pointTotal.Value += 2;
-            collisionConsequence = CreateLabel($"+2 Score", Color.Yellow, target.X, target.Y, 0.8);
+            CreateFlow(CreateLabel($"+2 Score", Color.Yellow, target.X, target.Y, 0.8));
         }
         else
         {
             pointMultiplier.Value *= 2;
-            collisionConsequence = CreateLabel($"Score X{pointMultiplier.Value}", new Color(0.0, 0.8, 1.0), target.X, target.Y, 0.8);
+            CreateFlow(CreateLabel($"Score X{pointMultiplier.Value}", new Color(0.0, 0.8, 1.0), target.X, target.Y, 0.8));
         }
 
-        Add(collisionConsequence);
-
         Timer displayTimer = new Timer(0.5);
+        displayTimer.Start();
+
         displayTimer.Timeout += delegate
         {
-            collisionConsequence.Destroy();
             displayTimer.Stop();
         };
-        displayTimer.Start();
 
         ChangePointCondition();
     }
 
 
+    /// <summary>
+    /// Updates playable character's image and health UI based on the remaining health.
+    /// Calls for the method ExplodeCar when player's health reaches its minimum value.
+    /// </summary>
+    /// <param name="conditions">Current status of the character</param>
     private void ChangeCarCondition(List<Image> conditions)
     {
         switch (healthRemaining.Value)
@@ -1096,6 +1273,11 @@ public class autopeli : PhysicsGame
         }
     }
 
+
+    /// <summary>
+    /// Updates the fuel UI's appearance based on the remaining fuel.
+    /// Calls for the method FuelRanOut when player's fuel reaches its minimum value.
+    /// </summary>
     private void ChangeFuelCondition()
     {
         switch (fuelRemaining.Value)
@@ -1127,6 +1309,9 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Changes the appearance of the score UI based on point multiplier value.
+    /// </summary>
     private void ChangePointCondition()
     {
         pointMultiplierDisplay.Image = LoadImage($"multi{pointMultiplier.Value}");
@@ -1152,6 +1337,11 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Sets the game as not passed.
+    /// Explodes and stops the movement of the playable character.
+    /// Calls for the method GameEnd.
+    /// </summary>
     public void ExplodeCar()
     {
         gamePassed = false;
@@ -1170,6 +1360,11 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Sets the game as not passed.
+    /// Stops the movement of the playable character.
+    /// Calls for the method GameEnd.
+    /// </summary>
     public void FuelRanOut()
     {
         gamePassed = false;
@@ -1181,6 +1376,15 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Sets the game as not on.
+    /// Potentially saves new progress/hiscore for the profile should the
+    /// player have passed the game.
+    /// Calls for methods DisableControls and StopGameTimers.
+    /// Stops the movement of all items on screen.
+    /// Finally calls for the method EndMenu after a three second countdown.
+    /// </summary>
+    /// <param name="message"></param>
     public void GameEnd(string message)
     {
         gameIsOn = false;
@@ -1197,6 +1401,7 @@ public class autopeli : PhysicsGame
 
         if (gamePassed) CreateSound("win");
         else CreateSound("loss");
+
         DisableControls();
         StopGameTimers();
 
@@ -1224,6 +1429,10 @@ public class autopeli : PhysicsGame
         };
     }
 
+
+    /// <summary>
+    /// Disables movement controls of the playable character.
+    /// </summary>
     public void DisableControls()
     {
         Keyboard.Disable(Key.W);
@@ -1233,6 +1442,9 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Stops all in-game timers.
+    /// </summary>
     public void StopGameTimers()
     {
         foreach (Timer t in gameTimers) t.Stop();
@@ -1240,6 +1452,11 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Creates the end menu with buttons for retry, main menu
+    /// and change difficulty or hiscores depending on the game mode.
+    /// Left clicking on a button calls for their respective method.
+    /// </summary>
     public void EndMenu()
     {
         MediaPlayer.Stop();
@@ -1269,6 +1486,16 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Creates a custom label based on the received parameters.
+    /// </summary>
+    /// <param name="labelText">Text of the label to be made</param>
+    /// <param name="textColor">Text color of the label to be made</param>
+    /// <param name="x">X-coordinate of the label to be made</param>
+    /// <param name="y">Y-coordinate of the label to be made</param>
+    /// <param name="scale">Text size multiplier of the label to be made</param>
+    /// <param name="isVisible">Visibility of the label to be made</param>
+    /// <returns>Customized label</returns>
     public Label CreateLabel(string labelText, Color textColor, double x = 0, double y = 0, double scale = 1, bool isVisible = true)
     {
         Label label = new Label(labelText);
@@ -1281,42 +1508,54 @@ public class autopeli : PhysicsGame
     }
 
 
-    private void CreateFlow(Label effect)
+    /// <summary>
+    /// Slowly lifts a label starting from the playable character's
+    /// position and destroys it after a while.
+    /// </summary>
+    /// <param name="label">Label to be lifted</param>
+    private void CreateFlow(Label label)
     {
-        Add(effect);
+        Add(label);
 
         PhysicsObject lift = new PhysicsObject(1, 1);
-        lift.Position = new Vector(player.X, player.Y + 55);
+        lift.Position = new Vector(player.X, player.Y + 50);
         lift.IgnoresCollisionResponse = true;
         lift.Color = Color.Transparent;
-        lift.LifetimeLeft = TimeSpan.FromSeconds(0.5);
+        lift.LifetimeLeft = TimeSpan.FromSeconds(0.8);
         Add(lift);
-        lift.Hit(new Vector(0, 120 * lift.Mass));
+        lift.Hit(new Vector(0, 100 * lift.Mass));
 
         Timer tracker = new Timer(0.01);
         tracker.Start();
-        tracker.Timeout += delegate { effect.Position = lift.Position; if (lift.IsDestroyed) { effect.Destroy(); tracker.Stop(); } };        
+        tracker.Timeout += delegate { label.Position = lift.Position; if (lift.IsDestroyed) { label.Destroy(); tracker.Stop(); } };        
     }
 
 
+    /// <summary>
+    /// Creates a list of best scores with their respective makers
+    /// and cars they were made with.
+    /// Returns to main menu when the list is closed.
+    /// </summary>
     public void Hiscores()
     {
+        // TODO: autot mukaan.
+        // Miksi sulkeminen muuttaa menun kuvasuhdetta?!!?
         CreateSound("selected");
 
         ClearAll();
 
         HighScoreWindow hiscoresWindow = new HighScoreWindow("Top Score", hiscores);
-        hiscoresWindow.Closed += HiscoresWindow_Closed;
+        hiscoresWindow.Message.Font = Font.FromContent("font1.otf");
         Add(hiscoresWindow);
+
+        hiscoresWindow.Closed += delegate { MainMenu(playerName); };
     }
 
 
-    private void HiscoresWindow_Closed(Window sender)
-    {
-        MainMenu(playerName);
-    }
-
-
+    /// <summary>
+    /// Plays the selected music file on loop.
+    /// </summary>
+    /// <param name="track">Selected music file</param>
     public void AddBackgroundMusic(string track)
     {
         MediaPlayer.Stop();
@@ -1325,6 +1564,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Displays a message to indicate that the player has completed the
+    /// game on standard difficulty and unlocked the full game.
+    /// </summary>
     public void DisplayUnlockMessage()
     {
         SaveCompletion();
@@ -1343,6 +1586,9 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Creates a shortlived label of "locked" on screen.
+    /// </summary>
     public void LockedContent()
     {
         CreateSound("locked");
@@ -1361,6 +1607,11 @@ public class autopeli : PhysicsGame
     //---------------------------------------------------------
 
 
+    /// <summary>
+    /// Defines the variables used in creating the items of the car menu.
+    /// Calls for the methods CreateCarAvatar and CreateCarName for each available car.
+    /// Some cars require full game completion to gain full effects of this method.
+    /// </summary>
     private void AddCars()
     {
         availableCars = new List<GameObject>();
@@ -1396,19 +1647,24 @@ public class autopeli : PhysicsGame
         {
             for (int j = 0, y = -85; j < 6; j++, y -= 16)
             {
-                propertyLabelsOfAllAvailableCars[i][j] = CreateCarProperty(propertyLabelsOfAllAvailableCars[i], carPropertyAcronyms[j], x, y);
+                propertyLabelsOfAllAvailableCars[i][j] = CreateLabel(carPropertyAcronyms[j], Color.Black, x, y, 0.6, false);
+                Add(propertyLabelsOfAllAvailableCars[i][j]);
             }
         }
     }
 
 
+    /// <summary>
+    /// Creates a game object with an image of a gray star in each index of the list "allStars".
+    /// Changes the image of some of the game objects on list "allStars" to a bigger yellow star.
+    /// </summary>
     private void AddStars()
     {
-        allStars= new List<GameObject[][]> { new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                             new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                             new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                             new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
-                                             new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] } };
+        allStars = new List<GameObject[][]>() { new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                                new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                                new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                                new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] },
+                                                new GameObject[6][] { new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5], new GameObject[5] } };
 
         allActiveStars = new List<int[][]>() { new int[6][] { new int[4], new int[2], new int[2], new int[2], new int[4], new int[3] },
                                                new int[6][] { new int[5], new int[4], new int[2], new int[1], new int[1], new int[4] },
@@ -1422,52 +1678,16 @@ public class autopeli : PhysicsGame
             {
                 for (int k = 0; k < allStars[i][j].Length; k++, x += 11)
                 {
-                    allStars[i][j][k] = CreateStar("star_passive", x, y, 9);
+                    allStars[i][j][k] = new GameObject(9, 9);
+                    allStars[i][j][k].Position = new Vector(x + 25, y);
+                    allStars[i][j][k].Image = LoadImage("star_passive");
+                    allStars[i][j][k].IsVisible = false;
+                    Add(allStars[i][j][k]);
                 }
             }
         }
-    }
 
-
-    private void CreateCarAvatar(string carImage, double x, double width, double height)
-    {
-        GameObject car = new GameObject(width / 1.25, height / 1.25);
-        car.Position = new Vector(x, 30.0);
-        car.Image = LoadImage(carImage);
-        availableCars.Add(car);
-        Add(car);
-    }
-
-
-    private void CreateCarName(string name, double x, double y = 150)
-    {
-        Label carName = CreateLabel(name, Color.White, x, y, 0.8);
-        titlesOfAvailableCars.Add(carName);
-        Add(carName);
-    }
-
-
-    private Label CreateCarProperty(Label[] propertyList, string property, double x, double y)
-    {
-        Label carProperty = CreateLabel(property, Color.Black, x, y, 0.6, false);
-        Add(carProperty);
-        return carProperty;
-    }
-
-
-    private GameObject CreateStar(string image, double x, double y, double size)
-    {
-        GameObject star = new GameObject(size, size);
-        star.Position = new Vector(x + 25, y);
-        star.Image = LoadImage(image);
-        star.IsVisible = false;
-        Add(star);
-        return star;
-    }
-
-    private void ActivateStars(List<GameObject> availableCars, int i)
-    {
-        if (Mouse.IsCursorOn(availableCars[i]))
+        for (int i = 0; i < availableCars.Count; i++)
         {
             for (int j = 0; j < 6; j++)
             {
@@ -1478,25 +1698,61 @@ public class autopeli : PhysicsGame
                     allStars[i][j][k].Height = 12;
                 }
             }
+        }
+    }
 
-            foreach (GameObject[] carPropertyStars in allStars[i])
+
+    /// <summary>
+    /// Creates a custom game object with an image of a car.
+    /// Adds the game object to be created to a specific list.
+    /// </summary>
+    /// <param name="carImage">Imagefile name</param>
+    /// <param name="x">X-coordinate of the game object</param>
+    /// <param name="width">Width of the game object</param>
+    /// <param name="height">height of the game object</param>
+    private void CreateCarAvatar(string carImage, double x, double width, double height)
+    {
+        GameObject car = new GameObject(width / 1.25, height / 1.25);
+        car.Position = new Vector(x, 30.0);
+        car.Image = LoadImage(carImage);
+        availableCars.Add(car);
+        Add(car);
+    }
+
+
+    /// <summary>
+    /// Creates a custom label with a name of a car.
+    /// Adds the label to be created to a specific list.
+    /// </summary>
+    /// <param name="name">Name of the car</param>
+    /// <param name="x">X-coordinate of the label</param>
+    /// <param name="y">Y-coordinate of the label</param>
+    private void CreateCarName(string name, double x, double y = 150)
+    {
+        Label carName = CreateLabel(name, Color.White, x, y, 0.8);
+        titlesOfAvailableCars.Add(carName);
+        Add(carName);
+    }
+
+
+    /// <summary>
+    /// Turns specific game objects in the list of "allStars" visible
+    /// or invisible depending on mouse coursor position.
+    /// </summary>
+    /// <param name="availableCars">Available car avatars</param>
+    /// <param name="carIndex">Car's index number on the list</param>
+    private void ActivateStars(List<GameObject> availableCars, int carIndex)
+    {
+        if (Mouse.IsCursorOn(availableCars[carIndex]))
+        {
+            foreach (GameObject[] carPropertyStars in allStars[carIndex])
             {
                 foreach (GameObject star in carPropertyStars) star.IsVisible = true;
             }
         }
         else
         {
-            for (int j = 0; j < 6; j++)
-            {
-                for (int k = 0; k < allActiveStars[i][j].Length; k++)
-                {
-                    allStars[i][j][k].Image = LoadImage("star_passive");
-                    allStars[i][j][k].Width = 9;
-                    allStars[i][j][k].Height = 9;
-                }
-            }
-
-            foreach (GameObject[] carPropertyStars in allStars[i])
+            foreach (GameObject[] carPropertyStars in allStars[carIndex])
             {
                 foreach (GameObject star in carPropertyStars) star.IsVisible = false;
             }
@@ -1504,6 +1760,11 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Defines the property multipliers of the game zones in endurance mode.
+    /// Alters the zone multiplier values depending on the current zone in-game.
+    /// Finally calls for the method ZonePause between each zone change.
+    /// </summary>
     public void AddZones()
     {
         double pointBalancer = 2.0;
@@ -1549,6 +1810,16 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Alerts the player of the changing zone in-game.
+    /// Changes the appearance of the zone UI.
+    /// Momentarily stops the creation of all in-game physics items.
+    /// Momentarily stops the depletion of fuel and increase of the points.
+    /// </summary>
+    /// <param name="pauseLength"></param>
+    /// <param name="zoneMeter"></param>
+    /// <param name="zoneCurrent"></param>
+    /// <param name="speedBalancer"></param>
     private void ZonePause(double pauseLength, Label zoneMeter, IntMeter zoneCurrent, double speedBalancer)
     {
         CreateSound("3");
@@ -1582,6 +1853,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Saves player profile data into an external .xml file.
+    /// </summary>
+    /// <param name="playerName">Current profile name</param>
     private void SavePlayer(string playerName)
     {
         for (int i = 0; i < profiles.Length; i++)
@@ -1596,6 +1871,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Sets the first completion of the game as false.
+    /// Saves the profile's game completion data into an external .xml file.
+    /// </summary>
     private void SaveCompletion()
     {
         if (!firstCompletion) return;
@@ -1604,6 +1883,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Sets the full unlocking of the game as true.
+    /// Saves the profile's game unlocks data into an external .xml file.
+    /// </summary>
     private void SaveUnlocks()
     {
         if (gameFullyUnlocked) return;
@@ -1612,6 +1895,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Resets the truth values of "mouseOnButton"
+    /// and "soundPlayed" back to default.
+    /// </summary>
     private void FormatSounds()
     {
         CreateSound("selected");
@@ -1620,16 +1907,13 @@ public class autopeli : PhysicsGame
     }
 
 
-
-
-
-
-
-
+    /// <summary>
+    /// Calls for the method HandleButton for a label when conditions are met.
+    /// </summary>
+    /// <param name="openingMenuButtons">List of the labels for which the method is potentially called</param>
     private void OpeningMenuMovement(List<Label> openingMenuButtons)
     {
         mouseOnButton = false;
-
 
         if (DataStorage.Exists("lastUsedProfile.xml"))
         {
@@ -1656,6 +1940,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Calls for the method HandleButton for a label when conditions are met.
+    /// </summary>
+    /// <param name="profileLabels">List of the labels for which the method is potentially called</param>
     private void LoadMenuMovement(List<Label> profileLabels)
     {
         mouseOnButton = false;
@@ -1672,6 +1960,11 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Calls for the method HandleButton for each label in an array.
+    /// Game completion affects the the label for which the method is called.
+    /// </summary>
+    /// <param name="mainMenuButtons">Array of the labels for which the method is potentially called</param>
     public void MainMenuMovement(Label[] mainMenuButtons)
     {
         mouseOnButton = false;
@@ -1695,6 +1988,11 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Calls for the method HandleButton for each label in a list.
+    /// Game completion affects the the label for which the method is called.
+    /// </summary>
+    /// <param name="difficultyMenuButtons">List of the labels for which the method is potentially called</param>
     public void DifficultyMenuMovement(List<Label> difficultyMenuButtons)
     {
         mouseOnButton = false;
@@ -1719,9 +2017,12 @@ public class autopeli : PhysicsGame
         if (!mouseOnButton) soundPlayed = false;
     }
 
-        
 
-
+    /// <summary>
+    /// Calls for the method HandleCarLabel and ActivateStars for each
+    /// label in the list "availableCars", altering their appearance based
+    /// on the location of the mouse cursor.
+    /// </summary>
     private void CarMenuMovement()
     {
         mouseOnButton = false;
@@ -1746,6 +2047,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Calls for the method HandleButton for each of the label in a list.
+    /// </summary>
+    /// <param name="endMenuButtons">List of the labels for which the method is called</param>
     private void EndMenuMovement(Label[] endMenuButtons)
     {
         mouseOnButton = false;
@@ -1759,6 +2064,17 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Calls for the methods CreateSound and UpdateLabel
+    /// based on the location of the mouse cursor and the truth values
+    /// of the variables "mouseOnButton" and "soundPlayed".
+    /// </summary>
+    /// <param name="button">Label for which the methods are called for
+    /// depending on the mouse cursor location related to them</param>
+    /// <param name="normal">Default color of the label</param>
+    /// <param name="hilight">Highlight color of the label</param>
+    /// <param name="sizeNorm">Default size multiplier of the label</param>
+    /// <param name="sizeHilight">Highlight size multiplier of the label</param>
     private void HandleButton(Label button, Color normal, Color hilight, double sizeNorm = 1, double sizeHilight = 1.05)
     {
         if (Mouse.IsCursorOn(button))
@@ -1780,9 +2096,17 @@ public class autopeli : PhysicsGame
     }
 
 
-    private void HandleCarLabel(List<GameObject> availableCars, int i)
+    /// <summary>
+    /// Calls for the methods CreateSound and UpdateLabel
+    /// based on the location of the mouse cursor and the truth values
+    /// of the variables "mouseOnButton" and "soundPlayed".
+    /// </summary>
+    /// <param name="availableCars">List of the avatars of the cars' for which
+    /// the methods are called for depending on the location of the mouse related to them.
+    /// <param name="carNum">Index number of the car on list "availableCars"</param>
+    private void HandleCarLabel(List<GameObject> availableCars, int carNum)
     {
-        if (Mouse.IsCursorOn(availableCars[i]))
+        if (Mouse.IsCursorOn(availableCars[carNum]))
         {
             mouseOnButton = true;
 
@@ -1792,23 +2116,29 @@ public class autopeli : PhysicsGame
                 soundPlayed = true;
             }
 
-            UpdateLabel(titlesOfAvailableCars[i], Color.HotPink, 1);
-            titlesOfAvailableCars[i].Y = 160;
+            UpdateLabel(titlesOfAvailableCars[carNum], Color.HotPink, 1);
+            titlesOfAvailableCars[carNum].Y = 160;
 
-            availableCars[i].Width = carDimensions[0, i] / 1.15;
-            availableCars[i].Height = carDimensions[1, i] / 1.15;
+            availableCars[carNum].Width = carDimensions[0, carNum] / 1.15;
+            availableCars[carNum].Height = carDimensions[1, carNum] / 1.15;
         }
         else
         {
-            UpdateLabel(titlesOfAvailableCars[i], Color.White, 0.8);
-            titlesOfAvailableCars[i].Y = 150;
+            UpdateLabel(titlesOfAvailableCars[carNum], Color.White, 0.8);
+            titlesOfAvailableCars[carNum].Y = 150;
 
-            availableCars[i].Width = carDimensions[0, i] / 1.25;
-            availableCars[i].Height = carDimensions[1, i] / 1.25;
+            availableCars[carNum].Width = carDimensions[0, carNum] / 1.25;
+            availableCars[carNum].Height = carDimensions[1, carNum] / 1.25;
         }
     }
 
 
+    /// <summary>
+    /// Updates the color and size multiplier of a label.
+    /// </summary>
+    /// <param name="l">Label to be updated</param>
+    /// <param name="updatedColor">Updated color</param>
+    /// <param name="sizeMultiplier">Updated size multiplier</param>
     public void UpdateLabel(Label l, Color updatedColor, double sizeMultiplier)
     {
         l.TextColor = updatedColor;
@@ -1816,6 +2146,10 @@ public class autopeli : PhysicsGame
     }
 
 
+    /// <summary>
+    /// Plays a sound effect.
+    /// </summary>
+    /// <param name="soundFileName">Soundfile name</param>
     public void CreateSound(string soundFileName)
     {
         SoundEffect sound = LoadSoundEffect(soundFileName);
