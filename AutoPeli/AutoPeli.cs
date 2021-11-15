@@ -542,19 +542,19 @@ public class autopeli : PhysicsGame
                 switch (difficulty)
                 {
                     case "beginner":
-                        CreateObstacle(12.5, 30.0, 0.1, 1.2);
+                        CreateObstacle(12.5, 30, 0.1, 1.2);
                         CreateCollectible("fuel", "fuel_group", 2, 4);
                         CreateCollectible("repairkit", "repairkit_group", 4, 6);
                         gameSpeed = new Vector(0, -250);
                         break;
                     case "standard":
-                        CreateObstacle(12.5, 30.0, 0.05, 0.8);
+                        CreateObstacle(15, 35, 0.05, 0.8);
                         CreateCollectible("fuel", "fuel_group", 3, 6);
                         CreateCollectible("repairkit", "repairkit_group", 6, 9);
                         gameSpeed = new Vector(0, -350);
                         break;
                     case "madness":
-                        CreateObstacle(12.5, 30.0, 0.0, 0.4);
+                        CreateObstacle(20, 40, 0.0, 0.4);
                         CreateCollectible("fuel", "fuel_group", 4, 8);
                         CreateCollectible("repairkit", "repairkit_group", 8, 12);
                         gameSpeed = new Vector(0, -500);
@@ -1116,7 +1116,7 @@ public class autopeli : PhysicsGame
         double removeHealth = RandomGen.NextInt(100, 180) / resistanceMultiplier;
         healthRemaining.Value -= removeHealth;
 
-        CreateFlow(CreateLabel($"-{removeHealth, 2:00} Damage", Color.Red, target.X, target.Y, 0.8));
+        CreateFlow(CreateLabel($"-{removeHealth, 2:00} Damage", Color.Red, scale: 0.8));
 
         ChangeCarCondition(conditions);
 
@@ -1142,7 +1142,7 @@ public class autopeli : PhysicsGame
         double addFuel = RandomGen.NextInt(25, 35) * (0.5 + fuelRemaining.MaxValue / 200);
         fuelRemaining.Value += addFuel;
 
-        CreateFlow(CreateLabel($"+{addFuel, 2:00} Fuel", new Color(0.0, 1.0, 0.0), target.X, target.Y, 0.8));
+        CreateFlow(CreateLabel($"+{addFuel, 2:00} Fuel", new Color(0.0, 1.0, 0.0), scale: 0.8));
     }
 
 
@@ -1167,11 +1167,11 @@ public class autopeli : PhysicsGame
         if (difficulty == "endurance" && healthRemaining.Value == healthRemaining.MaxValue)
         {
             pointTotal.Value++;
-            CreateFlow(CreateLabel($"+1 Score", Color.Yellow, target.X, target.Y, 0.8));
+            CreateFlow(CreateLabel($"+1 Score", Color.Yellow, scale: 0.8));
         }
         else
         {
-            CreateFlow(CreateLabel($"+{addHealth, 2:00} Health", Color.HotPink, target.X, target.Y, 0.8));
+            CreateFlow(CreateLabel($"+{addHealth, 2:00} Health", Color.HotPink, scale: 0.8));
         }
     }
 
@@ -1210,12 +1210,12 @@ public class autopeli : PhysicsGame
         if (pointMultiplier.Value == pointMultiplier.MaxValue)
         {
             pointTotal.Value += 2;
-            CreateFlow(CreateLabel($"+2 Score", Color.Yellow, target.X, target.Y, 0.8));
+            CreateFlow(CreateLabel($"+2 Score", Color.Yellow, scale: 0.8));
         }
         else
         {
             pointMultiplier.Value *= 2;
-            CreateFlow(CreateLabel($"Score X{pointMultiplier.Value}", new Color(0.0, 0.8, 1.0), target.X, target.Y, 0.8));
+            CreateFlow(CreateLabel($"Score X{pointMultiplier.Value}", new Color(0.0, 0.8, 1.0), scale: 0.8));
         }
 
         Timer displayTimer = new Timer(0.5);
@@ -1777,7 +1777,7 @@ public class autopeli : PhysicsGame
         zoneMeter.Color = new Color(0, 0, 0, 0.75);
         Add(zoneMeter);
 
-        Timer zoneTimer = new Timer(40);
+        Timer zoneTimer = new Timer(35);
         zoneTimers.Add(zoneTimer);
 
         zoneTimer.Timeout += delegate
@@ -1833,7 +1833,12 @@ public class autopeli : PhysicsGame
             case 4: zoneSwitch.TextColor = Color.Yellow; break;
             case 5: zoneSwitch.TextColor = Color.Orange; break;
             case 6: zoneSwitch.TextColor = Color.OrangeRed; break;
-            case 7: zoneMeter.TextColor = Color.Red; zoneMeter.Text = "Zone Max"; zoneSwitch.TextColor = Color.Red; zoneSwitch.Text = "Zone Max!"; break;
+            case 7:
+                {
+                    zoneMeter.TextColor = Color.Red; zoneMeter.Text = "Zone Max"; zoneSwitch.TextColor = Color.Red; zoneSwitch.Text = "Zone Max!"; break;
+                    pointTotal.Value += 100;
+                    CreateFlow(CreateLabel($"+100 Score", Color.Yellow, player.X, player.Y, 1.0));
+                }
         }
         Add(zoneSwitch);
 
