@@ -9,7 +9,7 @@ using System.Collections.Generic;
 /// @authors Juho En‰koski & Tomi Kankaanp‰‰
 /// @version 22.11.2021
 /// <summary>
-/// Game in which you as player control a car avoiding
+/// Game in which you as the player control a car avoiding
 /// obstacles and collecting fuel, repairkits and coins.
 /// The game features two game modes: arcade where the
 /// player attempts to reach the goal line in 3 different
@@ -570,7 +570,7 @@ public class autopeli : PhysicsGame
                 player.Image = LoadImage("car3");
                 playerMovements = new Vector[4] { new Vector(0, 270), new Vector(0, -270), new Vector(-270, 0), new Vector(270, 0) };
                 healthRemaining = new DoubleMeter(360, 0, 360);
-                resistanceMultiplier = 2.7;
+                resistanceMultiplier = 2.5;
                 fuelRemaining = new DoubleMeter(120, 0, 120);
                 consumptionMultiplier = 1.8;
                 carConditions = new List<Image>() { LoadImage("car3_5"), LoadImage("car3_4"), LoadImage("car3_3"), LoadImage("car3_2"), LoadImage("car3_1"), LoadImage("car3") };
@@ -581,7 +581,7 @@ public class autopeli : PhysicsGame
                 player.Image = LoadImage("car4");
                 playerMovements = new Vector[4] { new Vector(0, 180), new Vector(0, -180), new Vector(-180, 0), new Vector(180, 0) };
                 healthRemaining = new DoubleMeter(520, 0, 520);
-                resistanceMultiplier = 2.0;
+                resistanceMultiplier = 2.3;
                 fuelRemaining = new DoubleMeter(210, 0, 210);
                 consumptionMultiplier = 1.35;
                 carConditions = new List<Image>() { LoadImage("car4_5"), LoadImage("car4_4"), LoadImage("car4_3"), LoadImage("car4_2"), LoadImage("car4_1"), LoadImage("car4") };
@@ -834,9 +834,7 @@ public class autopeli : PhysicsGame
             player.Angle = Angle.FromDegrees(0);
             return;
         }
-
         if (player.Velocity.Y == 0 && direction.Y != 0) return;
-
         player.Velocity += direction;
 
         if (player.Velocity.X > 0) player.Angle = Angle.FromDegrees(-8);
@@ -1438,10 +1436,10 @@ public class autopeli : PhysicsGame
     /// </summary>
     private void DisableControls()
     {
-        Keyboard.Disable(Key.W);
-        Keyboard.Disable(Key.S);
-        Keyboard.Disable(Key.A);
-        Keyboard.Disable(Key.D);
+        Keyboard.Disable(Key.Up);
+        Keyboard.Disable(Key.Down);
+        Keyboard.Disable(Key.Left);
+        Keyboard.Disable(Key.Right);
     }
 
 
