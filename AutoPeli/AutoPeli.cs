@@ -462,7 +462,8 @@ public class autopeli : PhysicsGame
         AddStars();
 
         Mouse.ListenMovement(1, CarMenuMovement, null);
-        Mouse.Listen(MouseButton.Right, ButtonState.Pressed, DifficultyMenu, null);
+        if (difficulty != "endurance") Mouse.Listen(MouseButton.Right, ButtonState.Pressed, DifficultyMenu, null);
+        else Mouse.Listen(MouseButton.Right, ButtonState.Pressed, MainMenu, null, playerName);
         Mouse.ListenOn(availableCars[0], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Basic");
         Mouse.ListenOn(availableCars[1], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Sports");
         Mouse.ListenOn(availableCars[2], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Power");
