@@ -501,7 +501,7 @@ public class autopeli : PhysicsGame
     {
         CreateSound("selected");
         ClearAll();
-        Level.Background.CreateGradient(new Color(10, 10, 10), new Color(50, 50, 50));
+        Level.Background.CreateGradient(new Color(10, 10, 10), new Color(70, 70, 70));
 
         finishlineSpawned = false;
         gamePassed = false;
