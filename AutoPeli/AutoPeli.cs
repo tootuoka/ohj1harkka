@@ -69,6 +69,7 @@ public class autopeli : PhysicsGame
     private DoubleMeter distanceRemaining;
     private DoubleMeter pointTotal;
     private IntMeter pointMultiplier;
+    private IntMeter zoneCurrent;
     private ProgressBar healthBar;
     private ProgressBar fuelBar;
 
@@ -1124,14 +1125,23 @@ public class autopeli : PhysicsGame
         double removeHealth = RandomGen.NextInt(100, 180) / resistanceMultiplier;
         healthRemaining.Value -= removeHealth;
 
-        CreateFlow(CreateLabel($"-{removeHealth, 2:00} Damage", Color.Red, scale: 0.8));
+        CreateFlow(CreateLabel($"-{removeHealth, 2:00} Damage", Color.Red, scale: 0.8), 70);
 
         ChangeCarCondition(conditions);
 
         if (difficulty == "endurance" && pointMultiplier.Value > 1)
         {
-            pointMultiplier.Value /= 2;
-            ChangePointCondition();
+            int chance = RandomGen.NextInt(0, 4);
+            switch (chance)
+            {
+                case 0:
+                    pointMultiplier.Value /= 2;
+                    CreateFlow(CreateLabel($"Score X{pointMultiplier.Value}", Color.OrangeRed, scale: 0.8), + 40);
+                    ChangePointCondition();
+                    break;
+
+                default: break;
+            }
         }
     }
 
@@ -1145,11 +1155,10 @@ public class autopeli : PhysicsGame
     private void CollisionWithFuel(PhysicsObject player, PhysicsObject target)
     {
         CreateSound("fuel");
-
         target.Destroy();
+
         double addFuel = RandomGen.NextInt(30, 40) * (0.5 + fuelRemaining.MaxValue / 150);
         fuelRemaining.Value += addFuel;
-
         CreateFlow(CreateLabel($"+{addFuel, 2:00} Fuel", new Color(0.0, 1.0, 0.0), scale: 0.8));
     }
 
@@ -1165,12 +1174,7 @@ public class autopeli : PhysicsGame
     private void CollisionWithRepairkit(PhysicsObject player, PhysicsObject target, List<Image> conditions)
     {
         CreateSound("repairkit");
-
-        target.Destroy();
-        double addHealth = RandomGen.NextInt(50, 100) * (0.5 + healthRemaining.MaxValue / 300);
-        healthRemaining.Value += addHealth;
-
-        ChangeCarCondition(conditions);
+        target.Destroy();        
 
         if (difficulty == "endurance" && healthRemaining.Value == healthRemaining.MaxValue)
         {
@@ -1179,7 +1183,10 @@ public class autopeli : PhysicsGame
         }
         else
         {
+            double addHealth = RandomGen.NextInt(50, 100) * (0.5 + healthRemaining.MaxValue / 300);
+            healthRemaining.Value += addHealth;
             CreateFlow(CreateLabel($"+{addHealth, 2:00} Health", Color.HotPink, scale: 0.8));
+            ChangeCarCondition(conditions);
         }
     }
 
@@ -1480,7 +1487,7 @@ public class autopeli : PhysicsGame
     /// </summary>
     private void SaveScore()
     {
-        StringBuilder newEntry = new StringBuilder($"{playerName} ({car.Replace("car_", "")} Car)");
+        StringBuilder newEntry = new StringBuilder($"{playerName} ({car.Replace("car_", "")} Car : Z{zoneCurrent.Value})");
         pointTotal.Value = Math.Round(pointTotal.Value, 1);
         hiscores.Add(newEntry.ToString(), pointTotal.Value);
         DataStorage.Save<ScoreList>(hiscores, "hiscores.xml");
@@ -1726,9 +1733,9 @@ public class autopeli : PhysicsGame
         double sizeBalancer = 1.25;
         double speedBalancer = 1.15;
 
-        IntMeter zoneCurrent = new IntMeter(1, 1, 7);
+        zoneCurrent = new IntMeter(1, 1, 7);
         Label zoneMeter = CreateLabel($"Zone {zoneCurrent.Value}", Color.White, Screen.Right - 65, Screen.Bottom + 25);
-        zoneMeter.Color = new Color(0, 0, 0, 0.75);
+        zoneMeter.Color = new Color(0, 0, 0, 0.7);
         Add(zoneMeter);
 
         Timer zoneTimer = new Timer(30);
@@ -1887,12 +1894,12 @@ public class autopeli : PhysicsGame
     /// position and destroys it after a while.
     /// </summary>
     /// <param name="label">Label to be lifted</param>
-    private void CreateFlow(Label label)
+    private void CreateFlow(Label label, double yOffset = 50)
     {
         Add(label);
 
         PhysicsObject lift = new PhysicsObject(1, 1);
-        lift.Position = new Vector(player.X, player.Y + 50);
+        lift.Position = new Vector(player.X, player.Y + yOffset);
         lift.IgnoresCollisionResponse = true;
         lift.Color = Color.Transparent;
         lift.LifetimeLeft = TimeSpan.FromSeconds(1);
