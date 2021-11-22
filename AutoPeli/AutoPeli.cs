@@ -1553,7 +1553,7 @@ public class autopeli : PhysicsGame
         Level.Background.Image = LoadImage("IMG_main");
         Level.Background.ScaleToLevelByWidth();
 
-        HighScoreWindow hiscoresWindow = new HighScoreWindow(450, 500, "Top Score (endurance mode)", hiscores);
+        HighScoreWindow hiscoresWindow = new HighScoreWindow(450, 500, "Top Score (Endurance Mode)", hiscores);
         hiscoresWindow.Message.Font = Font.FromContent("font1.otf");
         Add(hiscoresWindow);
 
