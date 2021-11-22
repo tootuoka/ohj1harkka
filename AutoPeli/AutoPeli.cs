@@ -9,10 +9,12 @@ using System.Collections.Generic;
 /// @authors Juho En‰koski & Tomi Kankaanp‰‰
 /// @version 22.11.2021
 /// <summary>
-/// 
-/// Game where player drives a spaceship from starting
-/// platform to ending platform while gathering points
-/// and trying to not hit asteroids.
+/// Game in which you as player control a car avoiding
+/// obstacles and collecting fuel, repairkits and coins.
+/// The game features two game modes: arcade where the
+/// player attempts to reach the goal line in 3 different
+/// difficulties, and endurance where the player attempts
+/// to survive as long as possible while collecting points.
 /// </summary>
 public class autopeli : PhysicsGame
 {
@@ -546,7 +548,7 @@ public class autopeli : PhysicsGame
                 player.Image = LoadImage("car1");
                 playerMovements = new Vector[4] { new Vector(0, 230), new Vector(0, -230), new Vector(-230, 0), new Vector(230, 0) };
                 healthRemaining = new DoubleMeter(280, 0, 280);
-                resistanceMultiplier = 1.1;
+                resistanceMultiplier = 1.3;
                 fuelRemaining = new DoubleMeter(150, 0, 150);
                 consumptionMultiplier = 1.25;
                 carConditions = new List<Image>() { LoadImage("car1_5"), LoadImage("car1_4"), LoadImage("car1_3"), LoadImage("car1_2"), LoadImage("car1_1"), LoadImage("car1") };
@@ -557,7 +559,7 @@ public class autopeli : PhysicsGame
                 player.Image = LoadImage("car2");
                 playerMovements = new Vector[4] { new Vector(0, 330), new Vector(0, -330), new Vector(-330, 0), new Vector(330, 0) };
                 healthRemaining = new DoubleMeter(250, 0, 250);
-                resistanceMultiplier = 0.9;
+                resistanceMultiplier = 1.0;
                 fuelRemaining = new DoubleMeter(70, 0, 70);
                 consumptionMultiplier = 1.1;
                 carConditions = new List<Image>() { LoadImage("car2_5"), LoadImage("car2_4"), LoadImage("car2_3"), LoadImage("car2_2"), LoadImage("car2_1"), LoadImage("car2") };
@@ -568,7 +570,7 @@ public class autopeli : PhysicsGame
                 player.Image = LoadImage("car3");
                 playerMovements = new Vector[4] { new Vector(0, 270), new Vector(0, -270), new Vector(-270, 0), new Vector(270, 0) };
                 healthRemaining = new DoubleMeter(360, 0, 360);
-                resistanceMultiplier = 1.7;
+                resistanceMultiplier = 2.7;
                 fuelRemaining = new DoubleMeter(120, 0, 120);
                 consumptionMultiplier = 1.8;
                 carConditions = new List<Image>() { LoadImage("car3_5"), LoadImage("car3_4"), LoadImage("car3_3"), LoadImage("car3_2"), LoadImage("car3_1"), LoadImage("car3") };
@@ -579,7 +581,7 @@ public class autopeli : PhysicsGame
                 player.Image = LoadImage("car4");
                 playerMovements = new Vector[4] { new Vector(0, 180), new Vector(0, -180), new Vector(-180, 0), new Vector(180, 0) };
                 healthRemaining = new DoubleMeter(520, 0, 520);
-                resistanceMultiplier = 1.5;
+                resistanceMultiplier = 2.0;
                 fuelRemaining = new DoubleMeter(210, 0, 210);
                 consumptionMultiplier = 1.35;
                 carConditions = new List<Image>() { LoadImage("car4_5"), LoadImage("car4_4"), LoadImage("car4_3"), LoadImage("car4_2"), LoadImage("car4_1"), LoadImage("car4") };
@@ -590,7 +592,7 @@ public class autopeli : PhysicsGame
                 player.Image = LoadImage("car5");
                 playerMovements = new Vector[4] { new Vector(0, 390), new Vector(0, -390), new Vector(-390, 0), new Vector(390, 0) };
                 healthRemaining = new DoubleMeter(130, 0, 130);
-                resistanceMultiplier = 1.2;
+                resistanceMultiplier = 1.5;
                 fuelRemaining = new DoubleMeter(90, 0, 90);
                 consumptionMultiplier = 1.4;
                 carConditions = new List<Image>() { LoadImage("car5_5"), LoadImage("car5_4"), LoadImage("car5_3"), LoadImage("car5_2"), LoadImage("car5_1"), LoadImage("car5") };
@@ -785,14 +787,14 @@ public class autopeli : PhysicsGame
     /// <param name="playerMovements">Direction of player's movement</param>
     private void SetControls(Vector[] playerMovements)
     {
-        Keyboard.Listen(Key.W, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[0]);
-        Keyboard.Listen(Key.W, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[0]);
-        Keyboard.Listen(Key.S, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[1]);
-        Keyboard.Listen(Key.S, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[1]);
-        Keyboard.Listen(Key.A, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[2]);
-        Keyboard.Listen(Key.A, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[2]);
-        Keyboard.Listen(Key.D, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[3]);
-        Keyboard.Listen(Key.D, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[3]);
+        Keyboard.Listen(Key.Up, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[0]);
+        Keyboard.Listen(Key.Up, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[0]);
+        Keyboard.Listen(Key.Down, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[1]);
+        Keyboard.Listen(Key.Down, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[1]);
+        Keyboard.Listen(Key.Left, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[2]);
+        Keyboard.Listen(Key.Left, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[2]);
+        Keyboard.Listen(Key.Right, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[3]);
+        Keyboard.Listen(Key.Right, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[3]);
 
         Keyboard.Listen(Key.Escape, ButtonState.Pressed, ConfirmExit, null);
     }
@@ -1158,7 +1160,7 @@ public class autopeli : PhysicsGame
         CreateSound("fuel");
 
         target.Destroy();
-        double addFuel = RandomGen.NextInt(25, 35) * (0.5 + fuelRemaining.MaxValue / 200);
+        double addFuel = RandomGen.NextInt(30, 40) * (0.5 + fuelRemaining.MaxValue / 150);
         fuelRemaining.Value += addFuel;
 
         CreateFlow(CreateLabel($"+{addFuel, 2:00} Fuel", new Color(0.0, 1.0, 0.0), scale: 0.8));
@@ -1178,7 +1180,7 @@ public class autopeli : PhysicsGame
         CreateSound("repairkit");
 
         target.Destroy();
-        double addHealth = RandomGen.NextInt(40, 80) * (0.5 + healthRemaining.MaxValue / 400);
+        double addHealth = RandomGen.NextInt(50, 100) * (0.5 + healthRemaining.MaxValue / 300);
         healthRemaining.Value += addHealth;
 
         ChangeCarCondition(conditions);
