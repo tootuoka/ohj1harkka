@@ -226,6 +226,9 @@ public class autopeli : PhysicsGame
 
         Level.Background.CreateGradient(Color.LightPink, new Color(30, 30, 30));
 
+        Label playerIndicator = CreateLabel($"player: {playerName}", Color.Gray, Screen.Left + 80, Screen.Top - 30, 0.5);
+        Add(playerIndicator, 1);
+
         List<Label> profileLabels = new List<Label>();
 
         for (int i = 0, y = 80; i < profiles.Length; i++, y -= 40)
@@ -393,7 +396,6 @@ public class autopeli : PhysicsGame
         shadow.Color = new Color(0, 0, 0, 0.75);
         Add(shadow, 1);
 
-
         Label difficultyMenuTitle = CreateLabel("Difficulty Selection", Color.White, y: 180, scale: 1.3);
         Add(difficultyMenuTitle, 2);
 
@@ -409,6 +411,9 @@ public class autopeli : PhysicsGame
             CreateLabel("Standard", Color.White),
             CreateLabel("Madness", Color.Gray, y: -45)
         };
+
+        Label goBack = CreateLabel("Press  \"MouseRight\"  to return", Color.Black, y: -320, scale: 0.8);
+        Add(goBack);
 
         if (gameFullyUnlocked)
         {
@@ -460,6 +465,9 @@ public class autopeli : PhysicsGame
 
         AddCars();
         AddStars();
+
+        Label goBack = CreateLabel("Press  \"MouseRight\"  to return", Color.Black, y: -320, scale: 0.8);
+        Add(goBack);
 
         Mouse.ListenMovement(1, CarMenuMovement, null);
         if (difficulty != "endurance") Mouse.Listen(MouseButton.Right, ButtonState.Pressed, DifficultyMenu, null);
