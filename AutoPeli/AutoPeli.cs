@@ -543,8 +543,8 @@ public class autopeli : PhysicsGame
         switch (selectedCar)
         {
             case "car_Basic":
-                player.Width = carDimensions[0, 0] / 2.3;
-                player.Height = carDimensions[1, 0] / 2.3;
+                player.Width = carDimensions[0, 0] / 2.25;
+                player.Height = carDimensions[1, 0] / 2.25;
                 player.Image = LoadImage("car1");
                 playerMovements = new Vector[4] { new Vector(0, 230), new Vector(0, -230), new Vector(-230, 0), new Vector(230, 0) };
                 healthRemaining = new DoubleMeter(280, 0, 280);
@@ -554,8 +554,8 @@ public class autopeli : PhysicsGame
                 carConditions = new List<Image>() { LoadImage("car1_5"), LoadImage("car1_4"), LoadImage("car1_3"), LoadImage("car1_2"), LoadImage("car1_1"), LoadImage("car1") };
                 break;
             case "car_Sports":
-                player.Width = carDimensions[0, 1] / 2.4;
-                player.Height = carDimensions[1, 1] / 2.4;
+                player.Width = carDimensions[0, 1] / 2.5;
+                player.Height = carDimensions[1, 1] / 2.5;
                 player.Image = LoadImage("car2");
                 playerMovements = new Vector[4] { new Vector(0, 330), new Vector(0, -330), new Vector(-330, 0), new Vector(330, 0) };
                 healthRemaining = new DoubleMeter(250, 0, 250);
@@ -565,8 +565,8 @@ public class autopeli : PhysicsGame
                 carConditions = new List<Image>() { LoadImage("car2_5"), LoadImage("car2_4"), LoadImage("car2_3"), LoadImage("car2_2"), LoadImage("car2_1"), LoadImage("car2") };
                 break;
             case "car_Power":
-                player.Width = carDimensions[0, 2] / 2.2;
-                player.Height = carDimensions[1, 2] / 2.2;
+                player.Width = carDimensions[0, 2] / 2.1;
+                player.Height = carDimensions[1, 2] / 2.1;
                 player.Image = LoadImage("car3");
                 playerMovements = new Vector[4] { new Vector(0, 270), new Vector(0, -270), new Vector(-270, 0), new Vector(270, 0) };
                 healthRemaining = new DoubleMeter(360, 0, 360);
@@ -576,8 +576,8 @@ public class autopeli : PhysicsGame
                 carConditions = new List<Image>() { LoadImage("car3_5"), LoadImage("car3_4"), LoadImage("car3_3"), LoadImage("car3_2"), LoadImage("car3_1"), LoadImage("car3") };
                 break;
             case "car_Heavy":
-                player.Width = carDimensions[0, 3] / 2;
-                player.Height = carDimensions[1, 3] / 2;
+                player.Width = carDimensions[0, 3] / 1.9;
+                player.Height = carDimensions[1, 3] / 1.9;
                 player.Image = LoadImage("car4");
                 playerMovements = new Vector[4] { new Vector(0, 180), new Vector(0, -180), new Vector(-180, 0), new Vector(180, 0) };
                 healthRemaining = new DoubleMeter(520, 0, 520);
@@ -587,8 +587,8 @@ public class autopeli : PhysicsGame
                 carConditions = new List<Image>() { LoadImage("car4_5"), LoadImage("car4_4"), LoadImage("car4_3"), LoadImage("car4_2"), LoadImage("car4_1"), LoadImage("car4") };
                 break;
             case "car_Super":
-                player.Width = carDimensions[0, 4] / 2.3;
-                player.Height = carDimensions[1, 4] / 2.3;
+                player.Width = carDimensions[0, 4] / 2.4;
+                player.Height = carDimensions[1, 4] / 2.4;
                 player.Image = LoadImage("car5");
                 playerMovements = new Vector[4] { new Vector(0, 390), new Vector(0, -390), new Vector(-390, 0), new Vector(390, 0) };
                 healthRemaining = new DoubleMeter(130, 0, 130);
