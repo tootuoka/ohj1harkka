@@ -648,10 +648,10 @@ public class autopeli : PhysicsGame
         distanceUI.Image = LoadImage("distanceUI");
         Add(distanceUI, 2);
 
-        Timer distanceHelpTimer = new Timer(0.01);
-        gameTimers.Add(distanceHelpTimer);
+        Timer distanceReductionTimer = new Timer(0.01);
+        gameTimers.Add(distanceReductionTimer);
 
-        distanceHelpTimer.Timeout += delegate
+        distanceReductionTimer.Timeout += delegate
         {
             distanceRemaining.Value -= 0.5;
 
@@ -699,10 +699,10 @@ public class autopeli : PhysicsGame
         fuelUI.Image = LoadImage("fuelUI");
         Add(fuelUI, 2);
 
-        Timer fuelHelpTimer = new Timer(0.1);
-        gameTimers.Add(fuelHelpTimer);
+        Timer fuelReductionTimer = new Timer(0.1);
+        gameTimers.Add(fuelReductionTimer);
 
-        fuelHelpTimer.Timeout += delegate
+        fuelReductionTimer.Timeout += delegate
         {
             fuelRemaining.Value -= 0.28 * consumptionMultiplier;
             ChangeFuelCondition();
@@ -760,10 +760,10 @@ public class autopeli : PhysicsGame
         pointMultiplierDisplay.Color = Color.Black;
         Add(pointMultiplierDisplay, 2);
 
-        Timer pointHelpTimer = new Timer(0.1);
-        gameTimers.Add(pointHelpTimer);
+        Timer pointIncrementTimer = new Timer(0.1);
+        gameTimers.Add(pointIncrementTimer);
 
-        pointHelpTimer.Timeout += delegate
+        pointIncrementTimer.Timeout += delegate
         {
             pointTotal.Value += 0.01 * pointMultiplier.Value * zoneMultipliers[0];
         };
@@ -1408,12 +1408,12 @@ public class autopeli : PhysicsGame
         Label endReason = CreateLabel(message, new Color(255, 255, 100), y: 20, scale: 1.3);
         Add(endReason);
 
-        Timer endHelpTimer = new Timer(3);
-        endHelpTimer.Start(1);
+        Timer endMenuDelayer = new Timer(3);
+        endMenuDelayer.Start(1);
 
-        endHelpTimer.Timeout += delegate
+        endMenuDelayer.Timeout += delegate
         {
-            endHelpTimer.Stop();
+            endMenuDelayer.Stop();
             endReason.Destroy();
             EndMenu();
         };
