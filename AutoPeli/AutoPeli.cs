@@ -1731,7 +1731,7 @@ public class autopeli : PhysicsGame
         zoneMeter.Color = new Color(0, 0, 0, 0.75);
         Add(zoneMeter);
 
-        Timer zoneTimer = new Timer(35);
+        Timer zoneTimer = new Timer(30);
         zoneTimers.Add(zoneTimer);
 
         zoneTimer.Timeout += delegate
