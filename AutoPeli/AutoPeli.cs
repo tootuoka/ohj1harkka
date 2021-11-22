@@ -659,7 +659,7 @@ public class autopeli : PhysicsGame
             if (distanceRemaining.Value == distanceRemaining.MinValue && !finishlineSpawned)
             {
                 finishline = new PhysicsObject(Screen.Width, 50);
-                finishline.Y = (Screen.Top + 100);
+                finishline.Y = (Screen.Top + 150);
                 finishline.Image = LoadImage("finishline");
                 finishline.CanRotate = false;
                 finishline.IgnoresCollisionResponse = true;
@@ -888,6 +888,7 @@ public class autopeli : PhysicsGame
             openingMidline.IgnoresCollisionResponse = true;
             openingMidline.LifetimeLeft = TimeSpan.FromSeconds(10);
             startItems.Add(openingMidline);
+            addedItems.Add(openingMidline);
             Add(openingMidline, -3);
         }
 
@@ -898,6 +899,7 @@ public class autopeli : PhysicsGame
         startLine.IgnoresCollisionResponse = true;
         startLine.LifetimeLeft = TimeSpan.FromSeconds(10);
         startItems.Add(startLine);
+        addedItems.Add(startLine);
         Add(startLine, -3);
     }
 
@@ -1482,7 +1484,7 @@ public class autopeli : PhysicsGame
     /// </summary>
     private void SaveScore()
     {
-        StringBuilder newEntry = new StringBuilder($"{playerName} ({car.Replace("car_", "").ToLower()})");
+        StringBuilder newEntry = new StringBuilder($"{playerName} ({car.Replace("car_", "")} Car)");
         pointTotal.Value = Math.Round(pointTotal.Value, 1);
         hiscores.Add(newEntry.ToString(), pointTotal.Value);
         DataStorage.Save<ScoreList>(hiscores, "hiscores.xml");
@@ -1498,7 +1500,7 @@ public class autopeli : PhysicsGame
         for (int i = 0; i < profiles.Length; i++)
         {
             if (DataStorage.Exists($"player{i + 1}.xml")) continue;
-            profiles[i] = playerName.Replace("\n", "");
+            profiles[i] = playerName;
             currentSaveFile = i + 1;
             DataStorage.Save<string[]>(profiles, "profiles.xml");
             DataStorage.Save<string>(playerName, $"player{currentSaveFile}.xml");
@@ -1546,13 +1548,16 @@ public class autopeli : PhysicsGame
     /// </summary>
     private void Hiscores()
     {
-        // TODO: autot mukaan.
-        // Miksi sulkeminen muuttaa menun kuvasuhdetta?!!?
         CreateSound("selected");
-
         ClearAll();
 
-        HighScoreWindow hiscoresWindow = new HighScoreWindow(500, 500, "Top Score", hiscores);
+        Label playerIndicator = CreateLabel($"player: {playerName}", Color.Gray, Screen.Left + 80, Screen.Top - 30, 0.5);
+        Add(playerIndicator, 1);
+
+        Level.Background.Image = LoadImage("IMG_main");
+        Level.Background.ScaleToLevelByWidth();
+
+        HighScoreWindow hiscoresWindow = new HighScoreWindow(450, 500, "Top Score (endurance mode)", hiscores);
         hiscoresWindow.Message.Font = Font.FromContent("font1.otf");
         Add(hiscoresWindow);
 
