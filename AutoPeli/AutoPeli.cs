@@ -115,11 +115,11 @@ public class autopeli : PhysicsGame
     private void OpeningMenu()
     {
         ClearAll();
-
         AddBackgroundMusic("OST");
-
         Level.Background.Image = LoadImage("IMG_opening");
         Level.Background.FitToLevel();
+
+        int lastUsedProfileSlot = 0;
 
         GameObject avatarShadowLining = new GameObject(155, 155, Shape.Circle, Screen.Left + 110, Screen.Top - 95);
         avatarShadowLining.Color = new Color(255, 255, 150);
@@ -149,7 +149,6 @@ public class autopeli : PhysicsGame
 
         Mouse.ListenMovement(1, OpeningMenuMovement, null, openingMenuButtons);
 
-        int lastUsedProfileSlot = 0;
         if (DataStorage.Exists("lastUsedProfile.xml"))
         {
             for (int i = 0; i < profiles.Length; i++)
@@ -340,10 +339,8 @@ public class autopeli : PhysicsGame
     private void MainMenu(string player)
     {
         DataStorage.Save<string>(playerName, "lastUsedProfile.xml");
-
         ClearAll();
         FormatSounds();
-
         Level.Background.Image = LoadImage("IMG_main");
         Level.Background.ScaleToLevelByWidth();
 
@@ -390,9 +387,7 @@ public class autopeli : PhysicsGame
     {
         ClearAll();
         FormatSounds();
-
         Level.Background.CreateGradient(Color.Orange, new Color(30, 30, 30));
-
 
         GameObject shadow = new GameObject(180, 180);
         shadow.Color = new Color(0, 0, 0, 0.75);
@@ -401,35 +396,32 @@ public class autopeli : PhysicsGame
         Label difficultyMenuTitle = CreateLabel("Difficulty Selection", Color.White, y: 180, scale: 1.3);
         Add(difficultyMenuTitle, 2);
 
-        if (!gameFullyUnlocked)
-        {
-            Label message = CreateLabel("(Complete the game on standard difficulty to unlock new content.)", Color.Black, y: -300, scale: 0.65);
-            Add(message);
-        }
-
         List<Label> difficultyMenuButtons = new List<Label>()
         {
             CreateLabel("Beginner", Color.White, y: 45.0),
             CreateLabel("Standard", Color.White),
             CreateLabel("Madness", Color.Gray, y: -45)
         };
+        foreach (Label button in difficultyMenuButtons) Add(button);
 
         Label goBack = CreateLabel("Press  \"MouseRight\"  to return", Color.Black, y: -320, scale: 0.8);
         Add(goBack);
-
-        if (gameFullyUnlocked)
-        {
-            difficultyMenuButtons[2].TextColor = Color.White;
-            Mouse.ListenOn(difficultyMenuButtons[2], MouseButton.Left, ButtonState.Pressed, CarMenu, null, "madness");
-        }
-        else Mouse.ListenOn(difficultyMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
-
-        foreach (Label button in difficultyMenuButtons) Add(button);
 
         Mouse.ListenMovement(0.5, DifficultyMenuMovement, null, difficultyMenuButtons);
         Mouse.Listen(MouseButton.Right, ButtonState.Pressed, MainMenu, null, playerName);
         Mouse.ListenOn(difficultyMenuButtons[0], MouseButton.Left, ButtonState.Pressed, CarMenu, null, "beginner");
         Mouse.ListenOn(difficultyMenuButtons[1], MouseButton.Left, ButtonState.Pressed, CarMenu, null, "standard");
+        if (gameFullyUnlocked)
+        {
+            difficultyMenuButtons[2].TextColor = Color.White;
+            Mouse.ListenOn(difficultyMenuButtons[2], MouseButton.Left, ButtonState.Pressed, CarMenu, null, "madness");
+        }
+        else
+        {
+            Mouse.ListenOn(difficultyMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
+            Label message = CreateLabel("(Complete the game on standard difficulty to unlock new content.)", Color.Black, y: -300, scale: 0.65);
+            Add(message);
+        }
     }
 
 
@@ -443,10 +435,8 @@ public class autopeli : PhysicsGame
     private void CarMenu(string selectedDifficulty)
     {
         difficulty = selectedDifficulty;
-
         ClearAll();
         FormatSounds();
-
         Level.Background.CreateGradient(Color.LightGreen, new Color(30, 30, 30));
 
         GameObject shadow = new GameObject(305, 136, Shape.Rectangle, Screen.Left + 179, Screen.Bottom + 80);
@@ -462,22 +452,18 @@ public class autopeli : PhysicsGame
         CreateLabel("CAP = capacity (size of fuel tank & refueling rate).", Color.White, -339, -332, 0.6),
         CreateLabel("CON = consumption (conservation of fuel usage).", Color.White, -343.6, -350, 0.6)
         };
-
         foreach (Label description in descriptions) Add(description, 2);
-
-        AddCars();
-        AddStars();
 
         Label goBack = CreateLabel("Press  \"MouseRight\"  to return", Color.Black, y: -320, scale: 0.8);
         Add(goBack);
 
-        Mouse.ListenMovement(1, CarMenuMovement, null);
         if (difficulty != "endurance") Mouse.Listen(MouseButton.Right, ButtonState.Pressed, DifficultyMenu, null);
         else Mouse.Listen(MouseButton.Right, ButtonState.Pressed, MainMenu, null, playerName);
+        
+        Mouse.ListenMovement(1, CarMenuMovement, null);
         Mouse.ListenOn(availableCars[0], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Basic");
         Mouse.ListenOn(availableCars[1], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Sports");
         Mouse.ListenOn(availableCars[2], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Power");
-
         if (gameFullyUnlocked)
         {
             Mouse.ListenOn(availableCars[3], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Heavy");
@@ -488,6 +474,9 @@ public class autopeli : PhysicsGame
             Mouse.ListenOn(availableCars[3], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
             Mouse.ListenOn(availableCars[4], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
         }
+
+        AddCars();
+        AddStars();
     }
 
 
@@ -1462,6 +1451,10 @@ public class autopeli : PhysicsGame
     {
         MediaPlayer.Stop();
 
+        GameObject shadow = new GameObject(190, 170);
+        shadow.Color = new Color(0, 0, 0, 0.75);
+        Add(shadow, 1);
+
         Label[] endMenuButtons = new Label[] { CreateLabel("Retry", Color.White, y: 50), new Label(), CreateLabel("MainMenu", Color.White, y: -50) };
         
         if (difficulty != "endurance")
@@ -1474,12 +1467,7 @@ public class autopeli : PhysicsGame
             endMenuButtons[1] = CreateLabel("Hiscores", Color.White, y: 0);
             Mouse.ListenOn(endMenuButtons[1], MouseButton.Left, ButtonState.Pressed, Hiscores, null);
         }
-
         foreach (Label button in endMenuButtons) Add(button, 2);
-
-        GameObject shadow = new GameObject(190, 170);
-        shadow.Color = new Color(0, 0, 0, 0.75);
-        Add(shadow, 1);
 
         Mouse.ListenMovement(1.0, EndMenuMovement, null, endMenuButtons);
         Mouse.ListenOn(endMenuButtons[0], MouseButton.Left, ButtonState.Pressed, CreateStage, null, car);
