@@ -1174,8 +1174,8 @@ public class autopeli : PhysicsGame
 
         if (difficulty == "endurance" && healthRemaining.Value == healthRemaining.MaxValue)
         {
-            pointTotal.Value++;
-            CreateFlow(CreateLabel($"+1 Score", Color.Yellow, scale: 0.8));
+            pointTotal.Value += 2;
+            CreateFlow(CreateLabel($"+2 Score", Color.Yellow, scale: 0.8));
         }
         else
         {
@@ -1217,8 +1217,8 @@ public class autopeli : PhysicsGame
 
         if (pointMultiplier.Value == pointMultiplier.MaxValue)
         {
-            pointTotal.Value += 2;
-            CreateFlow(CreateLabel($"+2 Score", Color.Yellow, scale: 0.8));
+            pointTotal.Value += 10;
+            CreateFlow(CreateLabel($"+10 Score", Color.Yellow, scale: 0.8));
         }
         else
         {
@@ -1782,16 +1782,46 @@ public class autopeli : PhysicsGame
 
         switch (zoneCurrent.Value)
         {
-            case 2: zoneSwitch.TextColor = new Color(0.0, 1.0, 0.0); break;
-            case 3: zoneSwitch.TextColor = Color.GreenYellow; break;
-            case 4: zoneSwitch.TextColor = Color.Yellow; break;
-            case 5: zoneSwitch.TextColor = Color.Orange; break;
-            case 6: zoneSwitch.TextColor = Color.OrangeRed; break;
+            case 2:
+                {
+                    zoneSwitch.TextColor = new Color(0.0, 1.0, 0.0);
+                    pointTotal.Value += 10;
+                    CreateFlow(CreateLabel($"+10 Score", Color.Yellow, player.X, player.Y, 1));
+                    break;
+                }
+            case 3:
+                {
+                    zoneSwitch.TextColor = Color.GreenYellow;
+                    pointTotal.Value += 15;
+                    CreateFlow(CreateLabel($"+15 Score", Color.Yellow, player.X, player.Y, 1));
+                    break;
+                }
+            case 4:
+                {
+                    zoneSwitch.TextColor = Color.Yellow;
+                    pointTotal.Value += 20;
+                    CreateFlow(CreateLabel($"+20 Score", Color.Yellow, player.X, player.Y, 1));
+                    break;
+                }
+            case 5:
+                {
+                    zoneSwitch.TextColor = Color.Orange;
+                    pointTotal.Value += 25;
+                    CreateFlow(CreateLabel($"+25 Score", Color.Yellow, player.X, player.Y, 1));
+                    break;
+                }
+            case 6:
+                {
+                    zoneSwitch.TextColor = Color.OrangeRed;
+                    pointTotal.Value += 30;
+                    CreateFlow(CreateLabel($"+30 Score", Color.Yellow, player.X, player.Y, 1));
+                    break;
+                }
             case 7:
                 {
                     zoneMeter.TextColor = Color.Red; zoneMeter.Text = "Zone Max"; zoneSwitch.TextColor = Color.Red; zoneSwitch.Text = "Zone Max!";
                     pointTotal.Value += 100;
-                    CreateFlow(CreateLabel($"+100 Score", Color.Yellow, player.X, player.Y, 1.0));
+                    CreateFlow(CreateLabel($"+100 Score", Color.Yellow, player.X, player.Y, 1));
                     break;
                 }
         }
