@@ -457,11 +457,11 @@ public class autopeli : PhysicsGame
         Label goBack = CreateLabel("Press  \"MouseRight\"  to return", Color.Black, y: -320, scale: 0.8);
         Add(goBack);
 
-        if (difficulty != "endurance") Mouse.Listen(MouseButton.Right, ButtonState.Pressed, DifficultyMenu, null);
-        else Mouse.Listen(MouseButton.Right, ButtonState.Pressed, MainMenu, null, playerName);
-
         AddCars();
         AddStars();
+
+        if (difficulty != "endurance") Mouse.Listen(MouseButton.Right, ButtonState.Pressed, DifficultyMenu, null);
+        else Mouse.Listen(MouseButton.Right, ButtonState.Pressed, MainMenu, null, playerName);
 
         Mouse.ListenMovement(1, CarMenuMovement, null);
         Mouse.ListenOn(availableCars[0], MouseButton.Left, ButtonState.Pressed, CreateStage, null, "car_Basic");
