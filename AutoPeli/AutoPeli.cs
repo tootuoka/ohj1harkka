@@ -2,9 +2,18 @@ using Jypeli;
 using Jypeli.Assets;
 using Jypeli.Widgets;
 using System;
+using System.Text;
 using System.Collections.Generic;
 
 
+/// @authors Juho En‰koski & Tomi Kankaanp‰‰
+/// @version 22.11.2021
+/// <summary>
+/// 
+/// Game where player drives a spaceship from starting
+/// platform to ending platform while gathering points
+/// and trying to not hit asteroids.
+/// </summary>
 public class autopeli : PhysicsGame
 {
     // Preloaded constants    
@@ -176,7 +185,7 @@ public class autopeli : PhysicsGame
     /// Prompts the player a field to input a new profile name
     /// and saves the entered text as a new profile, entering main menu in the end.
     /// </summary>
-    public void NewProfile()
+    private void NewProfile()
     {
         CreateSound("selected");
 
@@ -188,12 +197,14 @@ public class autopeli : PhysicsGame
         nameQuery.InputBox.Font = Font.FromContent("font1.otf");
         Add(nameQuery);
 
-        nameQuery.TextEntered += delegate { playerName = nameQuery.InputBox.Text; };
+        nameQuery.TextEntered += delegate { playerName = nameQuery.InputBox.Text.Replace("\n", "").Trim(); };
         nameQuery.Closed += delegate
         {
             if (1 < playerName.Trim().Length && playerName.Trim().Length < 14)
             {
                 SavePlayer(playerName);
+                SaveCompletion();
+                SaveUnlocks();
                 MainMenu(playerName);
             }
             else NewProfile();
@@ -247,6 +258,28 @@ public class autopeli : PhysicsGame
 
 
     /// <summary>
+    /// Loads the selected profile and all filedata related to it.
+    /// Finally enters main menu.
+    /// </summary>
+    /// <param name="profileIndex">Profile to be loaded</param>
+    private void LoadProfile(int profileIndex)
+    {
+        currentSaveFile = profileIndex + 1;
+
+        if (!DataStorage.Exists($"unlocks{currentSaveFile}.xml"))
+        {
+            gameFullyUnlocked = false;
+            firstCompletion = true;
+        }
+
+        playerName = DataStorage.TryLoad<string>(playerName, $"player{currentSaveFile}.xml");
+        gameFullyUnlocked = DataStorage.TryLoad<bool>(gameFullyUnlocked, $"unlocks{currentSaveFile}.xml");
+        firstCompletion = DataStorage.TryLoad<bool>(firstCompletion, $"completion{currentSaveFile}.xml");
+        MainMenu(playerName);
+    }
+
+
+    /// <summary>
     /// Prompts the player with a choice to delete the selected profile.
     /// Proceeding with the delete removes the profile and re-enters main menu.
     /// </summary>
@@ -293,29 +326,13 @@ public class autopeli : PhysicsGame
 
 
     /// <summary>
-    /// Loads the selected profile and all filedata related to it.
-    /// Finally enters main menu.
-    /// </summary>
-    /// <param name="profileIndex">Profile to be loaded</param>
-    private void LoadProfile(int profileIndex)
-    {
-        currentSaveFile = profileIndex + 1;
-
-        playerName = DataStorage.TryLoad<string>(playerName, $"player{currentSaveFile}.xml");
-        gameFullyUnlocked = DataStorage.TryLoad<bool>(gameFullyUnlocked, $"unlocks{currentSaveFile}.xml");
-        firstCompletion = DataStorage.TryLoad<bool>(firstCompletion, $"completion{currentSaveFile}.xml");
-        MainMenu(playerName);
-    }
-
-
-    /// <summary>
     /// Creates the main menu with buttons for arcade and
     /// endurance modes, load profile, hiscores and exit game.
     /// Pressing each button calls for their respective method.
     /// Having completed the full game unlocks different options in the menu.
     /// </summary>
     /// <param name="player">Loaded profile</param>
-    public void MainMenu(string player)
+    private void MainMenu(string player)
     {
         DataStorage.Save<string>(playerName, "lastUsedProfile.xml");
 
@@ -335,29 +352,25 @@ public class autopeli : PhysicsGame
         Label[] mainMenuButtons = new Label[5] { CreateLabel("Arcade Mode", Color.White, y: 70.0), CreateLabel("Endurance Mode", Color.White, y: 35.0), CreateLabel("Load Profile", Color.White, y: 0), CreateLabel("Hiscores", Color.White, y: -35.0), CreateLabel("Exit", Color.White, y: -70.0) };
         foreach (Label button in mainMenuButtons) Add(button, -1);
 
+        Mouse.ListenMovement(1, MainMenuMovement, null, mainMenuButtons);
+        Mouse.ListenOn(mainMenuButtons[0], MouseButton.Left, ButtonState.Pressed, DifficultyMenu, null);
+        Mouse.ListenOn(mainMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LoadMenu, null);
+        Mouse.ListenOn(mainMenuButtons[4], MouseButton.Left, ButtonState.Pressed, ConfirmExit, null);
         if (gameFullyUnlocked)
         {
             Timer unlock = new Timer(0.5);
             unlock.Timeout += delegate { if (firstCompletion) DisplayUnlockMessage(); };
             unlock.Start(1);
 
-            Mouse.ListenMovement(1, MainMenuMovement, null, mainMenuButtons);
-            Mouse.ListenOn(mainMenuButtons[0], MouseButton.Left, ButtonState.Pressed, DifficultyMenu, null);
             Mouse.ListenOn(mainMenuButtons[1], MouseButton.Left, ButtonState.Pressed, CarMenu, null, "endurance");
-            Mouse.ListenOn(mainMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LoadMenu, null);
             Mouse.ListenOn(mainMenuButtons[3], MouseButton.Left, ButtonState.Pressed, Hiscores, null);
-            Mouse.ListenOn(mainMenuButtons[4], MouseButton.Left, ButtonState.Pressed, ConfirmExit, null);
         }
         else
         {
-            Mouse.ListenMovement(1, MainMenuMovement, null, mainMenuButtons);
             mainMenuButtons[1].TextColor = Color.Gray;
             mainMenuButtons[3].TextColor = Color.Gray;
-            Mouse.ListenOn(mainMenuButtons[0], MouseButton.Left, ButtonState.Pressed, DifficultyMenu, null);
             Mouse.ListenOn(mainMenuButtons[1], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
-            Mouse.ListenOn(mainMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LoadMenu, null);
             Mouse.ListenOn(mainMenuButtons[3], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
-            Mouse.ListenOn(mainMenuButtons[4], MouseButton.Left, ButtonState.Pressed, ConfirmExit, null);
         }
     }
 
@@ -368,7 +381,7 @@ public class autopeli : PhysicsGame
     /// Maddness difficulty button needs game's full completion to access.
     /// Pressing each button calls the method CarMenu with their respective parameter.
     /// </summary>
-    public void DifficultyMenu()
+    private void DifficultyMenu()
     {
         ClearAll();
         FormatSounds();
@@ -420,7 +433,7 @@ public class autopeli : PhysicsGame
     /// Pressing each car calls the method CreateStage with their respective parameter.
     /// </summary>
     /// <param name="selectedDifficulty">Selected game difficulty</param>
-    public void CarMenu(string selectedDifficulty)
+    private void CarMenu(string selectedDifficulty)
     {
         difficulty = selectedDifficulty;
 
@@ -475,31 +488,416 @@ public class autopeli : PhysicsGame
     /// Finally calls for the method StartGame.
     /// </summary>
     /// <param name="selectedCar">Selected vehicle</param>
-    public void CreateStage(string selectedCar)
+    private void CreateStage(string selectedCar)
     {
         CreateSound("selected");
-
         ClearAll();
-
         Level.Background.CreateGradient(new Color(10, 10, 10), new Color(50, 50, 50));
 
         finishlineSpawned = false;
         gamePassed = false;
         gameIsOn = true;
-
         gameTimers = new List<Timer>();
         zoneTimers = new List<Timer>();
         addedItems = new List<PhysicsObject>();
-
         zoneMultipliers = new double[4] { 1, 1, 1, 1 };
-
         distanceRemaining = new DoubleMeter(1000, 0, 5000);
 
         AddPlayer(selectedCar);
         AddWalls();
         AddStartScreenItems();
-        AddPlayerUI();
         StartGame();
+    }
+
+
+    /// <summary>
+    /// Adds the playable character based on player's selection.
+    /// Creates event handlers for crashes between the playable
+    /// character and other objects.
+    /// </summary>
+    /// <param name="selectedCar">Selected vehicle</param>
+    private void AddPlayer(string selectedCar)
+    {
+        car = selectedCar;
+        List<Image> carConditions = new List<Image>();
+
+        player = new PhysicsObject(40, 80);
+        player.Shape = Shape.Rectangle;
+        player.CanRotate = false;
+        player.Restitution = -1;
+        player.Position = new Vector(0.0, -280.0);
+
+        playerMovements = new Vector[4];
+
+        switch (selectedCar)
+        {
+            case "car_Basic":
+                player.Width = carDimensions[0, 0] / 2.3;
+                player.Height = carDimensions[1, 0] / 2.3;
+                player.Image = LoadImage("car1");
+                playerMovements = new Vector[4] { new Vector(0, 230), new Vector(0, -230), new Vector(-230, 0), new Vector(230, 0) };
+                healthRemaining = new DoubleMeter(280, 0, 280);
+                resistanceMultiplier = 1.1;
+                fuelRemaining = new DoubleMeter(150, 0, 150);
+                consumptionMultiplier = 1.3;
+                carConditions = new List<Image>() { LoadImage("car1_5"), LoadImage("car1_4"), LoadImage("car1_3"), LoadImage("car1_2"), LoadImage("car1_1"), LoadImage("car1") };
+                break;
+            case "car_Sports":
+                player.Width = carDimensions[0, 1] / 2.4;
+                player.Height = carDimensions[1, 1] / 2.4;
+                player.Image = LoadImage("car2");
+                playerMovements = new Vector[4] { new Vector(0, 330), new Vector(0, -330), new Vector(-330, 0), new Vector(330, 0) };
+                healthRemaining = new DoubleMeter(250, 0, 250);
+                resistanceMultiplier = 0.9;
+                fuelRemaining = new DoubleMeter(70, 0, 70);
+                consumptionMultiplier = 1.1;
+                carConditions = new List<Image>() { LoadImage("car2_5"), LoadImage("car2_4"), LoadImage("car2_3"), LoadImage("car2_2"), LoadImage("car2_1"), LoadImage("car2") };
+                break;
+            case "car_Power":
+                player.Width = carDimensions[0, 2] / 2.2;
+                player.Height = carDimensions[1, 2] / 2.2;
+                player.Image = LoadImage("car3");
+                playerMovements = new Vector[4] { new Vector(0, 270), new Vector(0, -270), new Vector(-270, 0), new Vector(270, 0) };
+                healthRemaining = new DoubleMeter(360, 0, 360);
+                resistanceMultiplier = 1.7;
+                fuelRemaining = new DoubleMeter(120, 0, 120);
+                consumptionMultiplier = 2.1;
+                carConditions = new List<Image>() { LoadImage("car3_5"), LoadImage("car3_4"), LoadImage("car3_3"), LoadImage("car3_2"), LoadImage("car3_1"), LoadImage("car3") };
+                break;
+            case "car_Heavy":
+                player.Width = carDimensions[0, 3] / 2;
+                player.Height = carDimensions[1, 3] / 2;
+                player.Image = LoadImage("car4");
+                playerMovements = new Vector[4] { new Vector(0, 180), new Vector(0, -180), new Vector(-180, 0), new Vector(180, 0) };
+                healthRemaining = new DoubleMeter(520, 0, 520);
+                resistanceMultiplier = 1.5;
+                fuelRemaining = new DoubleMeter(210, 0, 210);
+                consumptionMultiplier = 1.4;
+                carConditions = new List<Image>() { LoadImage("car4_5"), LoadImage("car4_4"), LoadImage("car4_3"), LoadImage("car4_2"), LoadImage("car4_1"), LoadImage("car4") };
+                break;
+            case "car_Super":
+                player.Width = carDimensions[0, 4] / 2.3;
+                player.Height = carDimensions[1, 4] / 2.3;
+                player.Image = LoadImage("car5");
+                playerMovements = new Vector[4] { new Vector(0, 390), new Vector(0, -390), new Vector(-390, 0), new Vector(390, 0) };
+                healthRemaining = new DoubleMeter(130, 0, 130);
+                resistanceMultiplier = 1.2;
+                fuelRemaining = new DoubleMeter(90, 0, 90);
+                consumptionMultiplier = 1.5;
+                carConditions = new List<Image>() { LoadImage("car5_5"), LoadImage("car5_4"), LoadImage("car5_3"), LoadImage("car5_2"), LoadImage("car5_1"), LoadImage("car5") };
+                break;
+        }
+
+        CollisionHandler<PhysicsObject, PhysicsObject> ObstacleHandler = (player, target) => CollisionWithObstacle(player, target, carConditions);
+        CollisionHandler<PhysicsObject, PhysicsObject> RepairkitHandler = (player, target) => CollisionWithRepairkit(player, target, carConditions);
+
+        AddCollisionHandler(player, "obstacle_group", ObstacleHandler);
+        AddCollisionHandler(player, "fuel_group", CollisionWithFuel);
+        AddCollisionHandler(player, "repairkit_group", RepairkitHandler);
+        AddCollisionHandler(player, "finishline_group", CollisionWithFinishline);
+        AddCollisionHandler(player, "coin_group", CollisionWithCoin);
+        CreatePlayerUI();
+        Add(player, -2);
+    }
+
+
+    /// <summary>
+    /// Creates the player UI, including the interface, fuel bar and meter, health bar and meter
+    /// and either points and zone meter or distance meter depending on game mode.
+    /// </summary>
+    private void CreatePlayerUI()
+    {
+        GameObject shadow = new GameObject(115, 180);
+        shadow.Position = new Vector(Screen.Right - 65, Screen.Bottom + 140);
+        shadow.Color = new Color(0, 0, 0, 0.75);
+        Add(shadow, 1);
+
+        AddFuelUI();
+        AddHealthUI();
+
+        if (difficulty == "endurance")
+        {
+            AddPointsUI();
+            AddZones();
+        }
+        else
+        {
+            AddDistanceUI();
+            Label filler = CreateLabel(difficulty.Substring(0, 1).ToUpper() + difficulty.Substring(1), Color.White, Screen.Right - 65, Screen.Bottom + 25);
+            filler.Color = new Color(0, 0, 0, 0.7);
+            Add(filler);
+        }
+    }
+
+
+    /// <summary>
+    /// Creates the UI for displaying the remaining distance
+    /// to the finishline in arcade mode.
+    /// </summary>
+    private void AddDistanceUI()
+    {
+        Label distanceMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 80, 1.1);
+        distanceMeter.BindTo(distanceRemaining);
+        distanceMeter.Color = Color.Black;
+        distanceMeter.BorderColor = Color.White;
+        distanceMeter.DecimalPlaces = 0;
+        Add(distanceMeter, 2);
+
+        GameObject distanceUI = new GameObject(30, 30);
+        distanceUI.Position = new Vector(distanceMeter.X + 50, distanceMeter.Y);
+        distanceUI.Image = LoadImage("distanceUI");
+        Add(distanceUI, 2);
+
+        Timer distanceHelpTimer = new Timer(0.01);
+        gameTimers.Add(distanceHelpTimer);
+
+        distanceHelpTimer.Timeout += delegate
+        {
+            distanceRemaining.Value -= 0.5;
+
+            if (distanceRemaining.Value == distanceRemaining.MinValue && !finishlineSpawned)
+            {
+                finishline = new PhysicsObject(Screen.Width, 50);
+                finishline.Y = (Screen.Top + 100);
+                finishline.Image = LoadImage("finishline");
+                finishline.CanRotate = false;
+                finishline.IgnoresCollisionResponse = true;
+                finishline.Tag = "finishline_group";
+                finishline.AddCollisionIgnoreGroup(1);
+                addedItems.Add(finishline);
+                Add(finishline, -3);
+                finishline.Hit(gameSpeed * finishline.Mass);
+                finishlineSpawned = true;
+            }
+        };
+    }
+
+
+    /// <summary>
+    /// Creates the UI for displaying the remaining fuel.
+    /// Reduces fuel over time.
+    /// </summary>
+    private void AddFuelUI()
+    {
+        fuelMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 140, 1.2);
+        fuelMeter.BindTo(fuelRemaining);
+        fuelMeter.Color = Color.Black;
+        fuelMeter.BorderColor = new Color(0.0, 1.0, 0.0);
+        fuelMeter.DecimalPlaces = 0;
+        Add(fuelMeter, 2);
+
+        fuelBar = new ProgressBar(fuelMeter.Width, 6);
+        fuelBar.BindTo(fuelRemaining);
+        fuelBar.Position = new Vector(fuelMeter.X, fuelMeter.Y - 20);
+        fuelBar.Color = Color.Black;
+        fuelBar.BorderColor = Color.Black;
+        fuelBar.BarColor = new Color(0.0, 1.0, 0.0);
+        Add(fuelBar, 2);
+
+        GameObject fuelUI = new GameObject(35, 35);
+        fuelUI.Position = new Vector(fuelMeter.X + 50, fuelMeter.Y - 4);
+        fuelUI.Image = LoadImage("fuelUI");
+        Add(fuelUI, 2);
+
+        Timer fuelHelpTimer = new Timer(0.1);
+        gameTimers.Add(fuelHelpTimer);
+
+        fuelHelpTimer.Timeout += delegate
+        {
+            fuelRemaining.Value -= 0.3 * consumptionMultiplier;
+            ChangeFuelCondition();
+        };
+    }
+
+
+    /// <summary>
+    /// Creates the UI for displaying the remaining health.
+    /// </summary>
+    private void AddHealthUI()
+    {
+        healthMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 200, 1.2);
+        healthMeter.BindTo(healthRemaining);
+        healthMeter.Color = Color.Black;
+        healthMeter.BorderColor = new Color(0.0, 1.0, 0.0);
+        healthMeter.DecimalPlaces = 0;
+        Add(healthMeter, 2);
+
+        healthBar = new ProgressBar(healthMeter.Width, 6);
+        healthBar.BindTo(healthRemaining);
+        healthBar.Position = new Vector(healthMeter.X, healthMeter.Y - 20);
+        healthBar.Color = Color.Black;
+        healthBar.BorderColor = Color.Black;
+        healthBar.BarColor = new Color(0.0, 1.0, 0.0);
+        Add(healthBar, 2);
+
+        GameObject healthUI = new GameObject(35, 35);
+        healthUI.Position = new Vector(healthBar.X + 50, healthMeter.Y - 4);
+        healthUI.Image = LoadImage("healthUI");
+        healthUI.Color = Color.Black;
+        Add(healthUI, 2);
+    }
+
+
+    /// <summary>
+    /// Creates the UI for displaying the total points earned.
+    /// Increases points over time.
+    /// </summary>
+    private void AddPointsUI()
+    {
+        pointTotal = new DoubleMeter(0.0);
+        pointMultiplier = new IntMeter(1, 1, 16);
+
+        pointMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 80, 1.2);
+        pointMeter.BindTo(pointTotal);
+        pointMeter.Color = Color.Black;
+        pointMeter.BorderColor = Color.Red;
+        pointMeter.DecimalPlaces = 0;
+        Add(pointMeter, 2);
+
+        pointMultiplierDisplay = new GameObject(35, 35);
+        pointMultiplierDisplay.Position = new Vector(pointMeter.X + 50.0, pointMeter.Y);
+        pointMultiplierDisplay.Image = LoadImage("multi1");
+        pointMultiplierDisplay.Color = Color.Black;
+        Add(pointMultiplierDisplay, 2);
+
+        Timer pointHelpTimer = new Timer(0.1);
+        gameTimers.Add(pointHelpTimer);
+
+        pointHelpTimer.Timeout += delegate
+        {
+            pointTotal.Value += 0.01 * pointMultiplier.Value * zoneMultipliers[0];
+        };
+    }
+
+
+    /// <summary>
+    /// Creates event handlers for listening WASD and Esc keys.
+    /// </summary>
+    /// <param name="playerMovements">Direction of player's movement</param>
+    private void SetControls(Vector[] playerMovements)
+    {
+        Keyboard.Listen(Key.W, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[0]);
+        Keyboard.Listen(Key.W, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[0]);
+        Keyboard.Listen(Key.S, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[1]);
+        Keyboard.Listen(Key.S, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[1]);
+        Keyboard.Listen(Key.A, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[2]);
+        Keyboard.Listen(Key.A, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[2]);
+        Keyboard.Listen(Key.D, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[3]);
+        Keyboard.Listen(Key.D, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[3]);
+
+        Keyboard.Listen(Key.Escape, ButtonState.Pressed, ConfirmExit, null);
+    }
+
+
+    /// <summary>
+    /// Manages playable character's movement on screen,
+    /// increasing it in the direction of the received parameter.
+    /// Turns the character based on its velocity.
+    /// </summary>
+    /// <param name="direction">Change in character's movement</param>
+    private void SetPlayerMovementSpeed(Vector direction)
+    {
+        if (direction.X < 0 && player.Velocity.X < 0) return;
+        if (direction.X > 0 && player.Velocity.X > 0) return;
+        if (direction.Y < 0 && player.Velocity.Y < 0) return;
+        if (direction.Y > 0 && player.Velocity.Y > 0) return;
+
+        player.Velocity += direction;
+
+        if (player.Velocity.X > 0) player.Angle = Angle.FromDegrees(-8);
+        else if (player.Velocity.X < 0) player.Angle = Angle.FromDegrees(8);
+        else player.Angle = Angle.FromDegrees(0);
+    }
+
+
+    /// <summary>
+    /// Manages playable character's movement on screen,
+    /// decreasing it in the direction of the received parameter.
+    /// Turns the character based on its velocity.
+    /// </summary>
+    /// <param name="direction">Change in character's movement</param>
+    private void ResetPlayerMovementSpeed(Vector direction)
+    {
+        if (player.Velocity.X == 0 && direction.X != 0)
+        {
+            player.Angle = Angle.FromDegrees(0);
+            return;
+        }
+
+        if (player.Velocity.Y == 0 && direction.Y != 0) return;
+
+        player.Velocity += direction;
+
+        if (player.Velocity.X > 0) player.Angle = Angle.FromDegrees(-8);
+        else if (player.Velocity.X < 0) player.Angle = Angle.FromDegrees(8);
+        else player.Angle = Angle.FromDegrees(0);
+    }
+
+
+    /// <summary>
+    /// Adds the "grass" besids the road as well as the boundaries of the road,
+    /// limiting the character's movement inside them.
+    /// </summary>
+    private void AddWalls()
+    {
+        Surface[] walls = new Surface[] { new Surface(130, Screen.Height), new Surface(130, Screen.Height) };
+        walls[0].X = Screen.Left + walls[0].Width / 2;
+        walls[1].X = Screen.Right - walls[1].Width / 2;
+
+        foreach (Surface wall in walls)
+        {
+            wall.Color = Color.Green;
+            wall.IgnoresCollisionResponse = true;
+            Add(wall);
+        }
+
+        railings = new Surface[] { new Surface(10, Screen.Height), new Surface(10, Screen.Height) };
+        railings[0].Left = walls[0].Right;
+        railings[1].Right = walls[1].Left;
+
+        foreach (Surface railing in railings)
+        {
+            railing.Color = Color.White;
+            Add(railing);
+        }
+
+        PhysicsObject[] borders = new PhysicsObject[] { Level.CreateTopBorder(0, false), Level.CreateBottomBorder(0, false) };
+
+        foreach (PhysicsObject border in borders)
+        {
+            border.AddCollisionIgnoreGroup(1);
+            Add(border);
+        }
+    }
+
+
+    /// <summary>
+    /// Creates the items on the screen as the game starts,
+    /// including the road lines and the startline.
+    /// </summary>
+    private void AddStartScreenItems()
+    {
+        startItems = new List<PhysicsObject>();
+
+        for (int i = 0; i < 6; i += 2)
+        {
+            PhysicsObject openingMidline = new PhysicsObject(8, 50);
+            openingMidline.Position = new Vector(0.0, 380 - (100 * i));
+            openingMidline.CanRotate = false;
+            openingMidline.IgnoresCollisionResponse = true;
+            openingMidline.LifetimeLeft = TimeSpan.FromSeconds(10);
+            startItems.Add(openingMidline);
+            Add(openingMidline, -3);
+        }
+
+        PhysicsObject startLine = new PhysicsObject(Screen.Width, 50);
+        startLine.Y = (player.Top + 50);
+        startLine.Image = LoadImage("finishline");
+        startLine.CanRotate = false;
+        startLine.IgnoresCollisionResponse = true;
+        startLine.LifetimeLeft = TimeSpan.FromSeconds(10);
+        startItems.Add(startLine);
+        Add(startLine, -3);
     }
 
 
@@ -508,7 +906,7 @@ public class autopeli : PhysicsGame
     /// and the player is given control of the character.
     /// Finally item creators are called with parameters based on the selected difficulty.
     /// </summary>
-    public void StartGame()
+    private void StartGame()
     {
         if (difficulty != "endurance") IncreaseDistance();
 
@@ -589,7 +987,7 @@ public class autopeli : PhysicsGame
     /// Adds a game object with an image of a traffic light.
     /// </summary>
     /// <param name="imageName">Image used</param>
-    public void CreateTrafficLight(string imageName)
+    private void CreateTrafficLight(string imageName)
     {
         GameObject trafficLight = new GameObject(60, 180);
         trafficLight.Image = LoadImage(imageName);
@@ -601,195 +999,9 @@ public class autopeli : PhysicsGame
 
 
     /// <summary>
-    /// Adds the playable character based on player's selection.
-    /// Creates event handlers for crashes between the playable
-    /// character and other objects.
-    /// </summary>
-    /// <param name="selectedCar">Selected vehicle</param>
-    public void AddPlayer(string selectedCar)
-    {
-        car = selectedCar;
-        List<Image> carConditions = new List<Image>();
-
-        player = new PhysicsObject(40, 80);
-        player.Shape = Shape.Rectangle;
-        player.CanRotate = false;
-        player.Restitution = -1;
-        player.Position = new Vector(0.0, -280.0);
-
-        playerMovements = new Vector[4];
-
-        switch (selectedCar)
-        {
-            case "car_Basic":
-                player.Width = carDimensions[0,0] / 2.3;
-                player.Height = carDimensions[1, 0] / 2.3;
-                player.Image = LoadImage("car1");
-                playerMovements = new Vector[4] { new Vector(0, 230), new Vector(0, -230), new Vector(-230, 0), new Vector(230, 0) };
-                healthRemaining = new DoubleMeter(280, 0, 280);
-                resistanceMultiplier = 1.1;
-                fuelRemaining = new DoubleMeter(150, 0, 150);
-                consumptionMultiplier = 1.3;
-                carConditions = new List<Image>() { LoadImage("car1_5"), LoadImage("car1_4"), LoadImage("car1_3"), LoadImage("car1_2"), LoadImage("car1_1"), LoadImage("car1") };
-                break;
-            case "car_Sports":
-                player.Width = carDimensions[0, 1] / 2.4;
-                player.Height = carDimensions[1, 1] / 2.4;
-                player.Image = LoadImage("car2");
-                playerMovements = new Vector[4] { new Vector(0, 330), new Vector(0, -330), new Vector(-330, 0), new Vector(330, 0) };
-                healthRemaining = new DoubleMeter(250, 0, 250);
-                resistanceMultiplier = 0.9;
-                fuelRemaining = new DoubleMeter(70, 0, 70);
-                consumptionMultiplier = 1.1;
-                carConditions = new List<Image>() { LoadImage("car2_5"), LoadImage("car2_4"), LoadImage("car2_3"), LoadImage("car2_2"), LoadImage("car2_1"), LoadImage("car2") };
-                break;
-            case "car_Power":
-                player.Width = carDimensions[0, 2] / 2.2;
-                player.Height = carDimensions[1, 2] / 2.2;
-                player.Image = LoadImage("car3");
-                playerMovements = new Vector[4] { new Vector(0, 270), new Vector(0, -270), new Vector(-270, 0), new Vector(270, 0) };
-                healthRemaining = new DoubleMeter(360, 0, 360);
-                resistanceMultiplier = 1.7;
-                fuelRemaining = new DoubleMeter(120, 0, 120);
-                consumptionMultiplier = 2.1;
-                carConditions = new List<Image>() { LoadImage("car3_5"), LoadImage("car3_4"), LoadImage("car3_3"), LoadImage("car3_2"), LoadImage("car3_1"), LoadImage("car3") };
-                break;
-            case "car_Heavy":
-                player.Width = carDimensions[0, 3] / 2;
-                player.Height = carDimensions[1, 3] / 2;
-                player.Image = LoadImage("car4");
-                playerMovements = new Vector[4] { new Vector(0, 180), new Vector(0, -180), new Vector(-180, 0), new Vector(180, 0) };
-                healthRemaining = new DoubleMeter(520, 0, 520);
-                resistanceMultiplier = 1.5;
-                fuelRemaining = new DoubleMeter(210, 0, 210);
-                consumptionMultiplier = 1.4;
-                carConditions = new List<Image>() { LoadImage("car4_5"), LoadImage("car4_4"), LoadImage("car4_3"), LoadImage("car4_2"), LoadImage("car4_1"), LoadImage("car4") };
-                break;
-            case "car_Super":
-                player.Width = carDimensions[0, 4] / 2.3;
-                player.Height = carDimensions[1, 4] / 2.3;
-                player.Image = LoadImage("car5");
-                playerMovements = new Vector[4] { new Vector(0, 390), new Vector(0, -390), new Vector(-390, 0), new Vector(390, 0) };
-                healthRemaining = new DoubleMeter(130, 0, 130);
-                resistanceMultiplier = 1.2;
-                fuelRemaining = new DoubleMeter(90, 0, 90);
-                consumptionMultiplier = 1.5;
-                carConditions = new List<Image>() { LoadImage("car5_5"), LoadImage("car5_4"), LoadImage("car5_3"), LoadImage("car5_2"), LoadImage("car5_1"), LoadImage("car5") };
-                break;
-        }
-
-        CollisionHandler<PhysicsObject, PhysicsObject> ObstacleHandler = (player, target) => CollisionWithObstacle(player, target, carConditions);
-        CollisionHandler<PhysicsObject, PhysicsObject> RepairkitHandler = (player, target) => CollisionWithRepairkit(player, target, carConditions);
-
-        AddCollisionHandler(player, "obstacle_group", ObstacleHandler);
-        AddCollisionHandler(player, "fuel_group", CollisionWithFuel);
-        AddCollisionHandler(player, "repairkit_group", RepairkitHandler);
-        AddCollisionHandler(player, "finishline_group", CollisionWithFinishline);
-        AddCollisionHandler(player, "coin_group", CollisionWithCoin);
-        Add(player, -2);
-    }
-
-
-    /// <summary>
-    /// Creates the player UI, including the interface, fuel bar and meter, health bar and meter
-    /// and either points and zone meter or distance meter depending on game mode.
-    /// </summary>
-    public void AddPlayerUI()
-    {
-        AddFuelUI();
-        AddHealthUI();
-
-        if (difficulty == "endurance")
-        {
-            AddPointsUI();
-            AddZones();
-        }
-        else
-        {
-            AddDistanceUI();
-            Label filler = CreateLabel(difficulty.Substring(0, 1).ToUpper() + difficulty.Substring(1), Color.White, Screen.Right - 65, Screen.Bottom + 25);
-            filler.Color = new Color(0, 0, 0, 0.7);
-            Add(filler);
-        }
-
-        GameObject shadow = new GameObject(115, 180);
-        shadow.Position = new Vector(Screen.Right - 65, Screen.Bottom + 140);
-        shadow.Color = new Color(0, 0, 0, 0.75);
-        Add(shadow, 1);
-    }
-
-
-    /// <summary>
-    /// Adds the "grass" besids the road as well as the boundaries of the road,
-    /// limiting the character's movement inside them.
-    /// </summary>
-    private void AddWalls()
-    {
-        Surface[] walls = new Surface[] { new Surface(130, Screen.Height), new Surface(130, Screen.Height) };
-        walls[0].X = Screen.Left + walls[0].Width / 2;
-        walls[1].X = Screen.Right - walls[1].Width / 2;
-
-        foreach (Surface wall in walls)
-        {
-            wall.Color = Color.Green;
-            wall.IgnoresCollisionResponse = true;
-            Add(wall);
-        }
-
-        railings = new Surface[] { new Surface(10, Screen.Height), new Surface(10, Screen.Height) };
-        railings[0].Left = walls[0].Right;
-        railings[1].Right = walls[1].Left;
-
-        foreach (Surface railing in railings)
-        {
-            railing.Color = Color.White;
-            Add(railing);
-        }
-
-        PhysicsObject[] borders = new PhysicsObject[] { Level.CreateTopBorder(0, false), Level.CreateBottomBorder(0, false) };
-        
-        foreach (PhysicsObject border in borders)
-        {
-            border.AddCollisionIgnoreGroup(1);
-            Add(border);
-        }
-    }
-
-
-    /// <summary>
-    /// Creates the items on the screen as the game starts,
-    /// including the road lines and the startline.
-    /// </summary>
-    private void AddStartScreenItems()
-    {
-        startItems = new List<PhysicsObject>();
-
-        for (int i = 0; i < 6; i += 2)
-        {
-            PhysicsObject openingMidline = new PhysicsObject(8, 50);
-            openingMidline.Position = new Vector(0.0, 380 - (100 * i));
-            openingMidline.CanRotate = false;
-            openingMidline.IgnoresCollisionResponse = true;
-            openingMidline.LifetimeLeft = TimeSpan.FromSeconds(10);
-            startItems.Add(openingMidline);
-            Add(openingMidline, -3);
-        }
-
-        PhysicsObject startLine = new PhysicsObject(Screen.Width, 50);
-        startLine.Y = (player.Top + 50);
-        startLine.Image = LoadImage("finishline");
-        startLine.CanRotate = false;
-        startLine.IgnoresCollisionResponse = true;
-        startLine.LifetimeLeft = TimeSpan.FromSeconds(10);
-        startItems.Add(startLine);
-        Add(startLine, -3);
-    }
-
-
-    /// <summary>
     /// Periodically creates a new road midline.
     /// </summary>
-    public void CreateRoadMidline()
+    private void CreateRoadMidline()
     {
         Timer roadMidlineCreator = new Timer(0.8);
         zoneTimers.Add(roadMidlineCreator);
@@ -822,7 +1034,7 @@ public class autopeli : PhysicsGame
     /// <param name="sizeMax">Maximum width/height of the obstacle</param>
     /// <param name="spawnMin">Minimum spawn interval of the obstacle</param>
     /// <param name="spawnMax">Maximum spawn interval of the obstacle</param>
-    public void CreateObstacle(double sizeMin, double sizeMax, double spawnMin, double spawnMax)
+    private void CreateObstacle(double sizeMin, double sizeMax, double spawnMin, double spawnMax)
     {
         Timer obstacleCreator = new Timer(RandomGen.NextDouble(spawnMin, spawnMax) / zoneMultipliers[1]);
         gameTimers.Add(obstacleCreator);
@@ -860,7 +1072,7 @@ public class autopeli : PhysicsGame
     /// <param name="collectibleGroup">Group to which collectible to be created belongs to</param>
     /// <param name="spawnMin">Minimum spawn interval of the obstacle</param>
     /// <param name="spawnMax">Maximum spawn interval of the obstacle</param>
-    public void CreateCollectible(string collectibleImage, string collectibleGroup, double spawnMin, double spawnMax)
+    private void CreateCollectible(string collectibleImage, string collectibleGroup, double spawnMin, double spawnMax)
     {
         Timer collectibleCreator = new Timer(RandomGen.NextDouble(spawnMin, spawnMax));
         gameTimers.Add(collectibleCreator);
@@ -892,210 +1104,6 @@ public class autopeli : PhysicsGame
 
 
     /// <summary>
-    /// Creates event handlers for listening WASD and Esc keys.
-    /// </summary>
-    /// <param name="playerMovements">Direction of player's movement</param>
-    public void SetControls(Vector[] playerMovements)
-    {
-        Keyboard.Listen(Key.W, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[0]);
-        Keyboard.Listen(Key.W, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[0]);
-        Keyboard.Listen(Key.S, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[1]);
-        Keyboard.Listen(Key.S, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[1]);
-        Keyboard.Listen(Key.A, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[2]);
-        Keyboard.Listen(Key.A, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[2]);
-        Keyboard.Listen(Key.D, ButtonState.Down, SetPlayerMovementSpeed, null, playerMovements[3]);
-        Keyboard.Listen(Key.D, ButtonState.Released, ResetPlayerMovementSpeed, null, -playerMovements[3]);
-
-        Keyboard.Listen(Key.Escape, ButtonState.Pressed, ConfirmExit, null);
-    }
-
-
-    /// <summary>
-    /// Manages playable character's movement on screen,
-    /// increasing it in the direction of the received parameter.
-    /// Turns the character based on its velocity.
-    /// </summary>
-    /// <param name="direction">Change in character's movement</param>
-    public void SetPlayerMovementSpeed(Vector direction)
-    {
-        if (direction.X < 0 && player.Velocity.X < 0) return;
-        if (direction.X > 0 && player.Velocity.X > 0) return;
-        if (direction.Y < 0 && player.Velocity.Y < 0) return;
-        if (direction.Y > 0 && player.Velocity.Y > 0) return;
-
-        player.Velocity += direction;
-
-        if (player.Velocity.X > 0) player.Angle = Angle.FromDegrees(-8);
-        else if (player.Velocity.X < 0) player.Angle = Angle.FromDegrees(8);
-        else player.Angle = Angle.FromDegrees(0);
-    }
-
-
-    /// <summary>
-    /// Manages playable character's movement on screen,
-    /// decreasing it in the direction of the received parameter.
-    /// Turns the character based on its velocity.
-    /// </summary>
-    /// <param name="direction">Change in character's movement</param>
-    public void ResetPlayerMovementSpeed(Vector direction)
-    {
-        if (player.Velocity.X == 0 && direction.X != 0)
-        {
-            player.Angle = Angle.FromDegrees(0);
-            return;
-        }
-
-        if (player.Velocity.Y == 0 && direction.Y != 0) return;
-
-        player.Velocity += direction;
-
-        if (player.Velocity.X > 0) player.Angle = Angle.FromDegrees(-8);
-        else if (player.Velocity.X < 0) player.Angle = Angle.FromDegrees(8);
-        else player.Angle = Angle.FromDegrees(0);
-    }
-
-    
-    /// <summary>
-    /// Creates the UI for displaying the remaining distance
-    /// to the finishline in arcade mode.
-    /// </summary>
-    public void AddDistanceUI()
-    {
-        Label distanceMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 80, 1.1);
-        distanceMeter.BindTo(distanceRemaining);
-        distanceMeter.Color = Color.Black;
-        distanceMeter.BorderColor = Color.White;
-        distanceMeter.DecimalPlaces = 0;
-        Add(distanceMeter, 2);
-
-        GameObject distanceUI = new GameObject(30, 30);
-        distanceUI.Position = new Vector(distanceMeter.X + 50, distanceMeter.Y);
-        distanceUI.Image = LoadImage("distanceUI");
-        Add(distanceUI, 2);
-
-        Timer distanceHelpTimer = new Timer(0.01);
-        gameTimers.Add(distanceHelpTimer);
-
-        distanceHelpTimer.Timeout += delegate
-        {
-            distanceRemaining.Value -= 0.5;
-
-            if (distanceRemaining.Value == distanceRemaining.MinValue && !finishlineSpawned)
-            {
-                finishline = new PhysicsObject(Screen.Width, 50.0);
-                finishline.Y = (Screen.Top + 10.0);
-                finishline.Image = LoadImage("finishline");
-                finishline.CanRotate = false;
-                finishline.IgnoresCollisionResponse = true;
-                finishline.Tag = "finishline_group";
-                finishline.AddCollisionIgnoreGroup(1);
-                addedItems.Add(finishline);
-                Add(finishline, -3);
-                finishline.Hit(gameSpeed * finishline.Mass);
-                finishlineSpawned = true;
-            }
-        };
-    }
-
-
-    /// <summary>
-    /// Creates the UI for displaying the remaining fuel.
-    /// Reduces fuel over time.
-    /// </summary>
-    public void AddFuelUI()
-    {
-        fuelMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 140, 1.2);
-        fuelMeter.BindTo(fuelRemaining);
-        fuelMeter.Color = Color.Black;
-        fuelMeter.BorderColor = new Color(0.0, 1.0, 0.0);
-        fuelMeter.DecimalPlaces = 0;
-        Add(fuelMeter, 2);
-
-        fuelBar = new ProgressBar(fuelMeter.Width, 6);
-        fuelBar.BindTo(fuelRemaining);
-        fuelBar.Position = new Vector(fuelMeter.X, fuelMeter.Y -20);
-        fuelBar.Color = Color.Black;
-        fuelBar.BorderColor = Color.Black;
-        fuelBar.BarColor = new Color(0.0, 1.0, 0.0);
-        Add(fuelBar, 2);
-
-        GameObject fuelUI = new GameObject(35, 35);
-        fuelUI.Position = new Vector(fuelMeter.X + 50, fuelMeter.Y - 4);
-        fuelUI.Image = LoadImage("fuelUI");
-        Add(fuelUI, 2);
-
-        Timer fuelHelpTimer = new Timer(0.1);
-        gameTimers.Add(fuelHelpTimer);
-
-        fuelHelpTimer.Timeout += delegate
-        {
-            fuelRemaining.Value -= 0.3 * consumptionMultiplier;
-            ChangeFuelCondition();
-        };
-    }
-
-
-    /// <summary>
-    /// Creates the UI for displaying the remaining health.
-    /// </summary>
-    public void AddHealthUI()
-    {
-        healthMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 200, 1.2);
-        healthMeter.BindTo(healthRemaining);
-        healthMeter.Color = Color.Black;
-        healthMeter.BorderColor = new Color(0.0, 1.0, 0.0);
-        healthMeter.DecimalPlaces = 0;
-        Add(healthMeter, 2);
-
-        healthBar = new ProgressBar(healthMeter.Width, 6);
-        healthBar.BindTo(healthRemaining);
-        healthBar.Position = new Vector(healthMeter.X, healthMeter.Y -20);
-        healthBar.Color = Color.Black;
-        healthBar.BorderColor = Color.Black;
-        healthBar.BarColor = new Color(0.0, 1.0, 0.0);
-        Add(healthBar, 2);
-
-        GameObject healthUI = new GameObject(35, 35);
-        healthUI.Position = new Vector(healthBar.X + 50, healthMeter.Y - 4);
-        healthUI.Image = LoadImage("healthUI");
-        healthUI.Color = Color.Black;
-        Add(healthUI, 2);
-    }
-
-
-    /// <summary>
-    /// Creates the UI for displaying the total points earned.
-    /// Increases points over time.
-    /// </summary>
-    public void AddPointsUI()
-    {
-        pointTotal = new DoubleMeter(0.0);
-        pointMultiplier = new IntMeter(1, 1, 16);
-
-        pointMeter = CreateLabel("", Color.White, Screen.Right - 85, Screen.Bottom + 80, 1.2);
-        pointMeter.BindTo(pointTotal);
-        pointMeter.Color = Color.Black;
-        pointMeter.BorderColor = Color.Red;
-        pointMeter.DecimalPlaces = 0;
-        Add(pointMeter, 2);
-
-        pointMultiplierDisplay = new GameObject(35, 35);
-        pointMultiplierDisplay.Position = new Vector(pointMeter.X + 50.0, pointMeter.Y);
-        pointMultiplierDisplay.Image = LoadImage("multi1");
-        pointMultiplierDisplay.Color = Color.Black;
-        Add(pointMultiplierDisplay, 2);
-
-        Timer pointHelpTimer = new Timer(0.1);
-        gameTimers.Add(pointHelpTimer);
-
-        pointHelpTimer.Timeout += delegate
-        {
-            pointTotal.Value += 0.01 * pointMultiplier.Value * zoneMultipliers[0];
-        };
-    }
-
-
-    /// <summary>
     /// Explodes the collided target and damages the playable character.
     /// Calls the method ChangeCarCondition after damaging the character.
     /// Halves the point multiplier value in endurance mode.
@@ -1104,7 +1112,7 @@ public class autopeli : PhysicsGame
     /// <param name="player">Playable character</param>
     /// <param name="target">Target of character collision</param>
     /// <param name="conditions">Current status of the character</param>
-    public void CollisionWithObstacle(PhysicsObject player, PhysicsObject target, List<Image> conditions)
+    private void CollisionWithObstacle(PhysicsObject player, PhysicsObject target, List<Image> conditions)
     {
         CreateSound("intense_explosion");
 
@@ -1342,7 +1350,7 @@ public class autopeli : PhysicsGame
     /// Explodes and stops the movement of the playable character.
     /// Calls for the method GameEnd.
     /// </summary>
-    public void ExplodeCar()
+    private void ExplodeCar()
     {
         gamePassed = false;
         Explosion carExplosion = new Explosion(4 * player.Width);
@@ -1353,9 +1361,7 @@ public class autopeli : PhysicsGame
         Add(carExplosion);
 
         CreateSound("destruction");
-
         player.Velocity = Vector.Zero;
-
         GameEnd("Your car broke down!");
     }
 
@@ -1365,13 +1371,11 @@ public class autopeli : PhysicsGame
     /// Stops the movement of the playable character.
     /// Calls for the method GameEnd.
     /// </summary>
-    public void FuelRanOut()
+    private void FuelRanOut()
     {
         gamePassed = false;
         CreateSound("fuel_out");
-
         player.Velocity = Vector.Zero;
-
         GameEnd("You ran out of fuel!");
     }
 
@@ -1385,19 +1389,12 @@ public class autopeli : PhysicsGame
     /// Finally calls for the method EndMenu after a three second countdown.
     /// </summary>
     /// <param name="message"></param>
-    public void GameEnd(string message)
+    private void GameEnd(string message)
     {
         gameIsOn = false;
-        if (gamePassed && difficulty == "standard")
-        {
-            SaveUnlocks();
-        }
-        if (difficulty == "endurance")
-        {
-            pointTotal.Value = Math.Round(pointTotal.Value, 1);
-            hiscores.Add(playerName, pointTotal.Value);
-            DataStorage.Save<ScoreList>(hiscores, "hiscores.xml");
-        }
+
+        if (gamePassed && difficulty == "standard") SaveUnlocks();
+        if (difficulty == "endurance") SaveScore();
 
         if (gamePassed) CreateSound("win");
         else CreateSound("loss");
@@ -1411,21 +1408,14 @@ public class autopeli : PhysicsGame
         Label endReason = CreateLabel(message, new Color(255, 255, 100), y: 20, scale: 1.3);
         Add(endReason);
 
-        DoubleMeter countdown = new DoubleMeter(3);
-
-        Timer endHelpTimer = new Timer(1);
-        endHelpTimer.Start(3);
+        Timer endHelpTimer = new Timer(3);
+        endHelpTimer.Start(1);
 
         endHelpTimer.Timeout += delegate
         {
-            countdown.Value -= 1;
-
-            if (countdown.Value == 0)
-            {
-                endHelpTimer.Stop();
-                endReason.Destroy();
-                EndMenu();
-            }
+            endHelpTimer.Stop();
+            endReason.Destroy();
+            EndMenu();
         };
     }
 
@@ -1433,7 +1423,7 @@ public class autopeli : PhysicsGame
     /// <summary>
     /// Disables movement controls of the playable character.
     /// </summary>
-    public void DisableControls()
+    private void DisableControls()
     {
         Keyboard.Disable(Key.W);
         Keyboard.Disable(Key.S);
@@ -1445,7 +1435,7 @@ public class autopeli : PhysicsGame
     /// <summary>
     /// Stops all in-game timers.
     /// </summary>
-    public void StopGameTimers()
+    private void StopGameTimers()
     {
         foreach (Timer t in gameTimers) t.Stop();
         foreach (Timer t in zoneTimers) t.Stop();
@@ -1457,7 +1447,7 @@ public class autopeli : PhysicsGame
     /// and change difficulty or hiscores depending on the game mode.
     /// Left clicking on a button calls for their respective method.
     /// </summary>
-    public void EndMenu()
+    private void EndMenu()
     {
         MediaPlayer.Stop();
 
@@ -1487,47 +1477,64 @@ public class autopeli : PhysicsGame
 
 
     /// <summary>
-    /// Creates a custom label based on the received parameters.
+    /// Saves pointTotal.Value data into an external .xml file.
     /// </summary>
-    /// <param name="labelText">Text of the label to be made</param>
-    /// <param name="textColor">Text color of the label to be made</param>
-    /// <param name="x">X-coordinate of the label to be made</param>
-    /// <param name="y">Y-coordinate of the label to be made</param>
-    /// <param name="scale">Text size multiplier of the label to be made</param>
-    /// <param name="isVisible">Visibility of the label to be made</param>
-    /// <returns>Customized label</returns>
-    public Label CreateLabel(string labelText, Color textColor, double x = 0, double y = 0, double scale = 1, bool isVisible = true)
+    private void SaveScore()
     {
-        Label label = new Label(labelText);
-        label.TextScale = new Vector(scale, scale);
-        label.Position = new Vector(x, y);
-        label.TextColor = textColor;
-        label.IsVisible = isVisible;
-        label.Font = Font.FromContent("font1.otf");
-        return label;
+        StringBuilder newEntry = new StringBuilder($"{playerName} ({car.Replace("car_", "").ToLower()})");
+        pointTotal.Value = Math.Round(pointTotal.Value, 1);
+        hiscores.Add(newEntry.ToString(), pointTotal.Value);
+        DataStorage.Save<ScoreList>(hiscores, "hiscores.xml");
     }
 
 
     /// <summary>
-    /// Slowly lifts a label starting from the playable character's
-    /// position and destroys it after a while.
+    /// Saves player profile data into an external .xml file.
     /// </summary>
-    /// <param name="label">Label to be lifted</param>
-    private void CreateFlow(Label label)
+    /// <param name="playerName">Current profile name</param>
+    private void SavePlayer(string playerName)
     {
-        Add(label);
+        for (int i = 0; i < profiles.Length; i++)
+        {
+            if (DataStorage.Exists($"player{i + 1}.xml")) continue;
+            profiles[i] = playerName.Replace("\n", "");
+            currentSaveFile = i + 1;
+            DataStorage.Save<string[]>(profiles, "profiles.xml");
+            DataStorage.Save<string>(playerName, $"player{currentSaveFile}.xml");
+            return;
+        }
+    }
 
-        PhysicsObject lift = new PhysicsObject(1, 1);
-        lift.Position = new Vector(player.X, player.Y + 50);
-        lift.IgnoresCollisionResponse = true;
-        lift.Color = Color.Transparent;
-        lift.LifetimeLeft = TimeSpan.FromSeconds(0.8);
-        Add(lift);
-        lift.Hit(new Vector(0, 100 * lift.Mass));
 
-        Timer tracker = new Timer(0.01);
-        tracker.Start();
-        tracker.Timeout += delegate { label.Position = lift.Position; if (lift.IsDestroyed) { label.Destroy(); tracker.Stop(); } };        
+    /// <summary>
+    /// Sets the first completion of the game as false.
+    /// Saves the profile's game completion data into an external .xml file.
+    /// </summary>
+    private void SaveCompletion()
+    {
+        if (!firstCompletion) return;
+        if (gamePassed)
+        {
+            firstCompletion = false;
+            DataStorage.Save<bool>(firstCompletion, $"completion{currentSaveFile}.xml");
+        }
+        else DataStorage.Save<bool>(true, $"completion{currentSaveFile}.xml");
+    }
+
+
+    /// <summary>
+    /// Sets the full unlocking of the game as true.
+    /// Saves the profile's game unlocks data into an external .xml file.
+    /// </summary>
+    private void SaveUnlocks()
+    {
+        if (gameFullyUnlocked) return;
+        if (gamePassed)
+        {
+            gameFullyUnlocked = true;
+            DataStorage.Save<bool>(gameFullyUnlocked, $"unlocks{currentSaveFile}.xml");
+        }
+        else DataStorage.Save<bool>(false, $"unlocks{currentSaveFile}.xml");
     }
 
 
@@ -1536,7 +1543,7 @@ public class autopeli : PhysicsGame
     /// and cars they were made with.
     /// Returns to main menu when the list is closed.
     /// </summary>
-    public void Hiscores()
+    private void Hiscores()
     {
         // TODO: autot mukaan.
         // Miksi sulkeminen muuttaa menun kuvasuhdetta?!!?
@@ -1544,67 +1551,12 @@ public class autopeli : PhysicsGame
 
         ClearAll();
 
-        HighScoreWindow hiscoresWindow = new HighScoreWindow("Top Score", hiscores);
+        HighScoreWindow hiscoresWindow = new HighScoreWindow(500, 500, "Top Score", hiscores);
         hiscoresWindow.Message.Font = Font.FromContent("font1.otf");
         Add(hiscoresWindow);
 
         hiscoresWindow.Closed += delegate { MainMenu(playerName); };
     }
-
-
-    /// <summary>
-    /// Plays the selected music file on loop.
-    /// </summary>
-    /// <param name="track">Selected music file</param>
-    public void AddBackgroundMusic(string track)
-    {
-        MediaPlayer.Stop();
-        MediaPlayer.Play(track);
-        MediaPlayer.IsRepeating = true;
-    }
-
-
-    /// <summary>
-    /// Displays a message to indicate that the player has completed the
-    /// game on standard difficulty and unlocked the full game.
-    /// </summary>
-    public void DisplayUnlockMessage()
-    {
-        SaveCompletion();
-
-        Label unlocks = CreateLabel("You have beaten arcade mode and unlocked new content!", new Color(0.0, 1.0, 0.0), scale: 0.9);
-        unlocks.LifetimeLeft = TimeSpan.FromSeconds(5);
-        Add(unlocks, 1);
-
-        GameObject shadow = new GameObject(unlocks.Width + 40, unlocks.Height + 40);
-        shadow.Position = unlocks.Position;
-        shadow.Color = new Color(0, 0, 0, 0.75);
-        shadow.LifetimeLeft = TimeSpan.FromSeconds(5);
-        Add(shadow, 0);
-
-        CreateSound("4");
-    }
-
-
-    /// <summary>
-    /// Creates a shortlived label of "locked" on screen.
-    /// </summary>
-    public void LockedContent()
-    {
-        CreateSound("locked");
-
-        Label lockedContent = CreateLabel("Locked", Color.White, Mouse.PositionOnScreen.X, Mouse.PositionOnScreen.Y, 0.8);
-        Add(lockedContent, 1);
-
-        Timer lockedHangTime = new Timer(0.3);
-        lockedHangTime.Timeout += delegate { lockedContent.Destroy(); };
-        lockedHangTime.Start(1);
-    }
-
-
-    //---------------------------------------------------------
-    //---------------------------------------------------------
-    //---------------------------------------------------------
 
 
     /// <summary>
@@ -1765,7 +1717,7 @@ public class autopeli : PhysicsGame
     /// Alters the zone multiplier values depending on the current zone in-game.
     /// Finally calls for the method ZonePause between each zone change.
     /// </summary>
-    public void AddZones()
+    private void AddZones()
     {
         double pointBalancer = 2.0;
         double spawnBalancer = 2.0;
@@ -1835,9 +1787,10 @@ public class autopeli : PhysicsGame
             case 6: zoneSwitch.TextColor = Color.OrangeRed; break;
             case 7:
                 {
-                    zoneMeter.TextColor = Color.Red; zoneMeter.Text = "Zone Max"; zoneSwitch.TextColor = Color.Red; zoneSwitch.Text = "Zone Max!"; break;
+                    zoneMeter.TextColor = Color.Red; zoneMeter.Text = "Zone Max"; zoneSwitch.TextColor = Color.Red; zoneSwitch.Text = "Zone Max!";
                     pointTotal.Value += 100;
                     CreateFlow(CreateLabel($"+100 Score", Color.Yellow, player.X, player.Y, 1.0));
+                    break;
                 }
         }
         Add(zoneSwitch);
@@ -1849,7 +1802,7 @@ public class autopeli : PhysicsGame
         Timer pauseTimer = new Timer(pauseLength);
         zoneTimers.Add(pauseTimer);
         pauseTimer.Start(1);
-        
+
         pauseTimer.Timeout += delegate
         {
             zoneSwitch.Destroy();
@@ -1859,44 +1812,83 @@ public class autopeli : PhysicsGame
 
 
     /// <summary>
-    /// Saves player profile data into an external .xml file.
+    /// Creates a custom label based on the received parameters.
     /// </summary>
-    /// <param name="playerName">Current profile name</param>
-    private void SavePlayer(string playerName)
+    /// <param name="labelText">Text of the label to be made</param>
+    /// <param name="textColor">Text color of the label to be made</param>
+    /// <param name="x">X-coordinate of the label to be made</param>
+    /// <param name="y">Y-coordinate of the label to be made</param>
+    /// <param name="scale">Text size multiplier of the label to be made</param>
+    /// <param name="isVisible">Visibility of the label to be made</param>
+    /// <returns>Customized label</returns>
+    private Label CreateLabel(string labelText, Color textColor, double x = 0, double y = 0, double scale = 1, bool isVisible = true)
     {
-        for (int i = 0; i < profiles.Length; i++)
-        {
-            if (DataStorage.Exists($"player{i + 1}.xml")) continue;
-            profiles[i] = playerName;
-            currentSaveFile = i + 1;
-            DataStorage.Save<string[]>(profiles, "profiles.xml");
-            DataStorage.Save<string>(playerName, $"player{currentSaveFile}.xml");
-            return;
-        }
+        Label label = new Label(labelText);
+        label.TextScale = new Vector(scale, scale);
+        label.Position = new Vector(x, y);
+        label.TextColor = textColor;
+        label.IsVisible = isVisible;
+        label.Font = Font.FromContent("font1.otf");
+        return label;
     }
 
 
     /// <summary>
-    /// Sets the first completion of the game as false.
-    /// Saves the profile's game completion data into an external .xml file.
+    /// Updates the color and size multiplier of a label.
     /// </summary>
-    private void SaveCompletion()
+    /// <param name="l">Label to be updated</param>
+    /// <param name="updatedColor">Updated color</param>
+    /// <param name="sizeMultiplier">Updated size multiplier</param>
+    private void UpdateLabel(Label l, Color updatedColor, double sizeMultiplier)
     {
-        if (!firstCompletion) return;
-        firstCompletion = false;
-        DataStorage.Save<bool>(firstCompletion, $"completion{currentSaveFile}.xml");
+        l.TextColor = updatedColor;
+        l.TextScale = new Vector(sizeMultiplier, sizeMultiplier);
     }
 
 
     /// <summary>
-    /// Sets the full unlocking of the game as true.
-    /// Saves the profile's game unlocks data into an external .xml file.
+    /// Slowly lifts a label starting from the playable character's
+    /// position and destroys it after a while.
     /// </summary>
-    private void SaveUnlocks()
+    /// <param name="label">Label to be lifted</param>
+    private void CreateFlow(Label label)
     {
-        if (gameFullyUnlocked) return;
-        gameFullyUnlocked = true;
-        DataStorage.Save<bool>(gameFullyUnlocked, $"unlocks{currentSaveFile}.xml");
+        Add(label);
+
+        PhysicsObject lift = new PhysicsObject(1, 1);
+        lift.Position = new Vector(player.X, player.Y + 50);
+        lift.IgnoresCollisionResponse = true;
+        lift.Color = Color.Transparent;
+        lift.LifetimeLeft = TimeSpan.FromSeconds(0.8);
+        Add(lift);
+        lift.Hit(new Vector(0, 100 * lift.Mass));
+
+        Timer tracker = new Timer(0.01);
+        tracker.Start();
+        tracker.Timeout += delegate { label.Position = lift.Position; if (lift.IsDestroyed) { label.Destroy(); tracker.Stop(); } };
+    }
+
+
+    /// <summary>
+    /// Plays a sound effect.
+    /// </summary>
+    /// <param name="soundFileName">Soundfile name</param>
+    private void CreateSound(string soundFileName)
+    {
+        SoundEffect sound = LoadSoundEffect(soundFileName);
+        sound.Play();
+    }
+
+
+    /// <summary>
+    /// Plays the selected music file on loop.
+    /// </summary>
+    /// <param name="track">Selected music file</param>
+    private void AddBackgroundMusic(string track)
+    {
+        MediaPlayer.Stop();
+        MediaPlayer.Play(track);
+        MediaPlayer.IsRepeating = true;
     }
 
 
@@ -1909,6 +1901,44 @@ public class autopeli : PhysicsGame
         CreateSound("selected");
         mouseOnButton = false;
         soundPlayed = false;
+    }
+
+
+    /// <summary>
+    /// Displays a message to indicate that the player has completed the
+    /// game on standard difficulty and unlocked the full game.
+    /// </summary>
+    private void DisplayUnlockMessage()
+    {
+        SaveCompletion();
+
+        Label unlocks = CreateLabel("You have beaten arcade mode and unlocked new content!", new Color(0.0, 1.0, 0.0), scale: 0.9);
+        unlocks.LifetimeLeft = TimeSpan.FromSeconds(5);
+        Add(unlocks, 1);
+
+        GameObject shadow = new GameObject(unlocks.Width + 40, unlocks.Height + 40);
+        shadow.Position = unlocks.Position;
+        shadow.Color = new Color(0, 0, 0, 0.75);
+        shadow.LifetimeLeft = TimeSpan.FromSeconds(5);
+        Add(shadow, 0);
+
+        CreateSound("4");
+    }
+
+
+    /// <summary>
+    /// Creates a shortlived label of "locked" on screen.
+    /// </summary>
+    private void LockedContent()
+    {
+        CreateSound("locked");
+
+        Label lockedContent = CreateLabel("Locked", Color.White, Mouse.PositionOnScreen.X, Mouse.PositionOnScreen.Y, 0.8);
+        Add(lockedContent, 1);
+
+        Timer lockedHangTime = new Timer(0.3);
+        lockedHangTime.Timeout += delegate { lockedContent.Destroy(); };
+        lockedHangTime.Start(1);
     }
 
 
@@ -1970,7 +2000,7 @@ public class autopeli : PhysicsGame
     /// Game completion affects the the label for which the method is called.
     /// </summary>
     /// <param name="mainMenuButtons">Array of the labels for which the method is potentially called</param>
-    public void MainMenuMovement(Label[] mainMenuButtons)
+    private void MainMenuMovement(Label[] mainMenuButtons)
     {
         mouseOnButton = false;
 
@@ -1998,7 +2028,7 @@ public class autopeli : PhysicsGame
     /// Game completion affects the the label for which the method is called.
     /// </summary>
     /// <param name="difficultyMenuButtons">List of the labels for which the method is potentially called</param>
-    public void DifficultyMenuMovement(List<Label> difficultyMenuButtons)
+    private void DifficultyMenuMovement(List<Label> difficultyMenuButtons)
     {
         mouseOnButton = false;
 
@@ -2135,29 +2165,5 @@ public class autopeli : PhysicsGame
             availableCars[carNum].Width = carDimensions[0, carNum] / 1.25;
             availableCars[carNum].Height = carDimensions[1, carNum] / 1.25;
         }
-    }
-
-
-    /// <summary>
-    /// Updates the color and size multiplier of a label.
-    /// </summary>
-    /// <param name="l">Label to be updated</param>
-    /// <param name="updatedColor">Updated color</param>
-    /// <param name="sizeMultiplier">Updated size multiplier</param>
-    public void UpdateLabel(Label l, Color updatedColor, double sizeMultiplier)
-    {
-        l.TextColor = updatedColor;
-        l.TextScale = new Vector(sizeMultiplier, sizeMultiplier);
-    }
-
-
-    /// <summary>
-    /// Plays a sound effect.
-    /// </summary>
-    /// <param name="soundFileName">Soundfile name</param>
-    public void CreateSound(string soundFileName)
-    {
-        SoundEffect sound = LoadSoundEffect(soundFileName);
-        sound.Play();
     }
 }
