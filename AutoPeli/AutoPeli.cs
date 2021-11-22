@@ -962,7 +962,7 @@ public class autopeli : PhysicsGame
                         CreateCollectible("fuel", "fuel_group", 3, 4);
                         CreateCollectible("repairkit", "repairkit_group", 5, 7);
                         CreateCollectible("coin", "coin_group", 9, 11);
-                        gameSpeed = new Vector(0, -200);
+                        gameSpeed = new Vector(0, -250);
                         break;
                 }
 
