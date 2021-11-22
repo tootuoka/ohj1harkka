@@ -1778,7 +1778,9 @@ public class autopeli : PhysicsGame
     {
         CreateSound("3");
 
-        Label zoneSwitch = CreateLabel("Zone Up!", new Color(0.0, 1.0, 0.0), y: Screen.Top - 150, scale: 1.5);
+        Label zoneSwitch = CreateLabel("Zone Up!", new Color(0.0, 1.0, 0.0), y: Screen.Top - 80, scale: 1.5);
+        GameObject shadow = new GameObject(zoneSwitch.Width + 80, zoneSwitch.Height + 20, Shape.Rectangle, zoneSwitch.X, zoneSwitch.Y);
+        shadow.Color = new Color(0, 0, 0, 0.75);
 
         switch (zoneCurrent.Value)
         {
@@ -1825,7 +1827,8 @@ public class autopeli : PhysicsGame
                     break;
                 }
         }
-        Add(zoneSwitch);
+        Add(zoneSwitch, 2);
+        Add(shadow, 1);
 
         foreach (Timer t in gameTimers) t.Stop();
         foreach (PhysicsObject item in addedItems) item.Velocity = new Vector(0, item.Velocity.Y * speedBalancer);
@@ -1838,6 +1841,7 @@ public class autopeli : PhysicsGame
         pauseTimer.Timeout += delegate
         {
             zoneSwitch.Destroy();
+            shadow.Destroy();
             foreach (Timer t in gameTimers) t.Start();
         };
     }
@@ -1891,9 +1895,9 @@ public class autopeli : PhysicsGame
         lift.Position = new Vector(player.X, player.Y + 50);
         lift.IgnoresCollisionResponse = true;
         lift.Color = Color.Transparent;
-        lift.LifetimeLeft = TimeSpan.FromSeconds(0.8);
+        lift.LifetimeLeft = TimeSpan.FromSeconds(1);
         Add(lift);
-        lift.Hit(new Vector(0, 100 * lift.Mass));
+        lift.Hit(new Vector(0, 120 * lift.Mass));
 
         Timer tracker = new Timer(0.01);
         tracker.Start();
