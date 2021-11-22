@@ -1778,7 +1778,7 @@ public class autopeli : PhysicsGame
     {
         CreateSound("3");
 
-        Label zoneSwitch = CreateLabel("Zone Up!", new Color(0.0, 1.0, 0.0), y: Screen.Top - 80, scale: 1.5);
+        Label zoneSwitch = CreateLabel("Zone Up!", new Color(0.0, 1.0, 0.0), y: Screen.Top - 60, scale: 1.5);
         GameObject shadow = new GameObject(zoneSwitch.Width + 80, zoneSwitch.Height + 20, Shape.Rectangle, zoneSwitch.X, zoneSwitch.Y);
         shadow.Color = new Color(0, 0, 0, 0.75);
 
