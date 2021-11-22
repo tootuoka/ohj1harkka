@@ -548,7 +548,7 @@ public class autopeli : PhysicsGame
                 healthRemaining = new DoubleMeter(280, 0, 280);
                 resistanceMultiplier = 1.1;
                 fuelRemaining = new DoubleMeter(150, 0, 150);
-                consumptionMultiplier = 1.3;
+                consumptionMultiplier = 1.25;
                 carConditions = new List<Image>() { LoadImage("car1_5"), LoadImage("car1_4"), LoadImage("car1_3"), LoadImage("car1_2"), LoadImage("car1_1"), LoadImage("car1") };
                 break;
             case "car_Sports":
@@ -570,7 +570,7 @@ public class autopeli : PhysicsGame
                 healthRemaining = new DoubleMeter(360, 0, 360);
                 resistanceMultiplier = 1.7;
                 fuelRemaining = new DoubleMeter(120, 0, 120);
-                consumptionMultiplier = 2.1;
+                consumptionMultiplier = 1.8;
                 carConditions = new List<Image>() { LoadImage("car3_5"), LoadImage("car3_4"), LoadImage("car3_3"), LoadImage("car3_2"), LoadImage("car3_1"), LoadImage("car3") };
                 break;
             case "car_Heavy":
@@ -581,7 +581,7 @@ public class autopeli : PhysicsGame
                 healthRemaining = new DoubleMeter(520, 0, 520);
                 resistanceMultiplier = 1.5;
                 fuelRemaining = new DoubleMeter(210, 0, 210);
-                consumptionMultiplier = 1.4;
+                consumptionMultiplier = 1.35;
                 carConditions = new List<Image>() { LoadImage("car4_5"), LoadImage("car4_4"), LoadImage("car4_3"), LoadImage("car4_2"), LoadImage("car4_1"), LoadImage("car4") };
                 break;
             case "car_Super":
@@ -592,7 +592,7 @@ public class autopeli : PhysicsGame
                 healthRemaining = new DoubleMeter(130, 0, 130);
                 resistanceMultiplier = 1.2;
                 fuelRemaining = new DoubleMeter(90, 0, 90);
-                consumptionMultiplier = 1.5;
+                consumptionMultiplier = 1.4;
                 carConditions = new List<Image>() { LoadImage("car5_5"), LoadImage("car5_4"), LoadImage("car5_3"), LoadImage("car5_2"), LoadImage("car5_1"), LoadImage("car5") };
                 break;
         }
@@ -713,7 +713,7 @@ public class autopeli : PhysicsGame
 
         fuelHelpTimer.Timeout += delegate
         {
-            fuelRemaining.Value -= 0.3 * consumptionMultiplier;
+            fuelRemaining.Value -= 0.28 * consumptionMultiplier;
             ChangeFuelCondition();
         };
     }
@@ -951,19 +951,19 @@ public class autopeli : PhysicsGame
                 switch (difficulty)
                 {
                     case "beginner":
-                        CreateObstacle(12.5, 30, 0.1, 1.2);
+                        CreateObstacle(10, 30, 0.1, 1.0);
                         CreateCollectible("fuel", "fuel_group", 2, 4);
                         CreateCollectible("repairkit", "repairkit_group", 4, 6);
                         gameSpeed = new Vector(0, -250);
                         break;
                     case "standard":
-                        CreateObstacle(15, 35, 0.05, 0.8);
+                        CreateObstacle(15, 40, 0.05, 0.7);
                         CreateCollectible("fuel", "fuel_group", 3, 6);
                         CreateCollectible("repairkit", "repairkit_group", 6, 9);
                         gameSpeed = new Vector(0, -350);
                         break;
                     case "madness":
-                        CreateObstacle(20, 40, 0.0, 0.4);
+                        CreateObstacle(25, 60, 0.0, 0.3);
                         CreateCollectible("fuel", "fuel_group", 4, 8);
                         CreateCollectible("repairkit", "repairkit_group", 8, 12);
                         gameSpeed = new Vector(0, -500);
