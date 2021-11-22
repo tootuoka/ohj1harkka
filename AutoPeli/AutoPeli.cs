@@ -658,7 +658,7 @@ public class autopeli : PhysicsGame
             if (distanceRemaining.Value == distanceRemaining.MinValue && !finishlineSpawned)
             {
                 finishline = new PhysicsObject(Screen.Width, 50);
-                finishline.Y = (Screen.Top + 150);
+                finishline.Y = (Screen.Top + 200);
                 finishline.Image = LoadImage("finishline");
                 finishline.CanRotate = false;
                 finishline.IgnoresCollisionResponse = true;
