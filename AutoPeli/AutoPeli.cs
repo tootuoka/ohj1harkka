@@ -345,7 +345,7 @@ public class autopeli : PhysicsGame
         Level.Background.Image = LoadImage("IMG_main");
         Level.Background.ScaleToLevelByWidth();
 
-        Label mainMenuTitle = CreateLabel("MAIN MENU", Color.White, y: 300, scale: 1.4);
+        Label mainMenuTitle = CreateLabel("MAIN MENU", Color.White, y: 320, scale: 1.4);
         mainMenuTitle.BorderColor = Color.White;
         Add(mainMenuTitle);
 
@@ -394,7 +394,7 @@ public class autopeli : PhysicsGame
         shadow.Color = new Color(0, 0, 0, 0.75);
         Add(shadow, 1);
 
-        Label difficultyMenuTitle = CreateLabel("Difficulty Selection", Color.White, y: 180, scale: 1.3);
+        Label difficultyMenuTitle = CreateLabel("Difficulty Selection", Color.White, y: 200, scale: 1.3);
         Add(difficultyMenuTitle, 2);
 
         List<Label> difficultyMenuButtons = new List<Label>()
@@ -420,7 +420,7 @@ public class autopeli : PhysicsGame
         else
         {
             Mouse.ListenOn(difficultyMenuButtons[2], MouseButton.Left, ButtonState.Pressed, LockedContent, null);
-            Label message = CreateLabel("(Complete the game on standard difficulty to unlock new content.)", Color.Black, y: -300, scale: 0.65);
+            Label message = CreateLabel("(Complete the game on standard difficulty to unlock new content.)", Color.Black, y: 170, scale: 0.65);
             Add(message);
         }
     }
@@ -1125,18 +1125,18 @@ public class autopeli : PhysicsGame
         double removeHealth = RandomGen.NextInt(100, 180) / resistanceMultiplier;
         healthRemaining.Value -= removeHealth;
 
-        CreateFlow(CreateLabel($"-{removeHealth, 2:00} Damage", Color.Red, scale: 0.8), 70);
+        CreateFlow(CreateLabel($"-{removeHealth, 2:00} Damage", Color.Red, scale: 0.8), 60);
 
         ChangeCarCondition(conditions);
 
         if (difficulty == "endurance" && pointMultiplier.Value > 1)
         {
-            int chance = RandomGen.NextInt(0, 4);
+            int chance = RandomGen.NextInt(0, 3);
             switch (chance)
             {
                 case 0:
                     pointMultiplier.Value /= 2;
-                    CreateFlow(CreateLabel($"Score X{pointMultiplier.Value}", Color.OrangeRed, scale: 0.8), + 40);
+                    CreateFlow(CreateLabel($"Score X{pointMultiplier.Value}", Color.OrangeRed, scale: 0.8), 40);
                     ChangePointCondition();
                     break;
 
@@ -1487,7 +1487,7 @@ public class autopeli : PhysicsGame
     /// </summary>
     private void SaveScore()
     {
-        StringBuilder newEntry = new StringBuilder($"{playerName} ({car.Replace("car_", "")} Car : Z{zoneCurrent.Value})");
+        StringBuilder newEntry = new StringBuilder($"{playerName}  ({car.Replace("car_", "")} Car - Z{zoneCurrent.Value})");
         pointTotal.Value = Math.Round(pointTotal.Value, 1);
         hiscores.Add(newEntry.ToString(), pointTotal.Value);
         DataStorage.Save<ScoreList>(hiscores, "hiscores.xml");
